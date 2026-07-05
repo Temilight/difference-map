@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>The Difference Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --cream: #F1EFE8; --ink: #26241F; --pine: #2F5D50; --clay: #B0603C;
+    --muted: #6B675C; --faint: #8A8578; --line: #CBC7BA; --card: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--cream); color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif; -webkit-font-smoothing: antialiased; }
+  button, input { font-family: inherit; }
+  button { cursor: pointer; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 22px 80px; }
+  .eyebrow { font-family: system-ui, -apple-system, sans-serif; font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  .step-count { font-family: system-ui, -apple-system, sans-serif; font-size: 12px;
+    color: var(--faint); margin-bottom: 22px; }
+  h1 { font-size: 30px; font-weight: normal; line-height: 1.25; margin: 14px 0 10px; }
+  h2 { font-size: 23px; font-weight: normal; line-height: 1.3; margin: 0 0 4px; }
+  .bracket { font-size: 15px; color: var(--faint); font-style: italic; }
+  .lede { font-size: 16.5px; line-height: 1.6; margin: 0 0 6px; }
+  .quiet { font-size: 14px; line-height: 1.6; color: var(--muted); }
+  .tiny { font-family: system-ui, -apple-system, sans-serif; font-size: 12px;
+    line-height: 1.6; color: var(--faint); }
+  .mech { font-family: system-ui, -apple-system, sans-serif; font-size: 12.5px;
+    color: var(--faint); margin: 0 0 10px; }
+  .why { font-family: system-ui, -apple-system, sans-serif; font-size: 12px;
+    color: var(--faint); font-style: italic; margin: 10px 0 0; }
+  .example { font-size: 13.5px; line-height: 1.55; color: var(--muted);
+    background: var(--cream); border-radius: 4px; padding: 10px 12px; margin: 0 0 12px; }
+
+  .block { background: var(--card); border-radius: 6px; padding: 18px 22px; margin: 0 0 14px; }
+  .block h3 { font-size: 17.5px; font-weight: normal; line-height: 1.4; margin: 0 0 4px; }
+
+  .chip { border: 1.5px solid var(--line); background: transparent; border-radius: 999px;
+    padding: 11px 16px; font-size: 15px; color: var(--ink); margin: 0 8px 10px 0;
+    min-height: 46px; line-height: 1.3; text-align: left; }
+  .chip.on { border-color: var(--pine); background: var(--pine); color: #fff; }
+  .chip.clay-on { border-color: var(--clay); background: var(--clay); color: #fff; }
+  .chip:disabled { opacity: 0.45; cursor: default; }
+  .chip:focus-visible, .go:focus-visible, input:focus-visible, .stmt:focus-visible,
+  .seg:focus-visible, summary:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; }
+
+  .stmt { display: block; width: 100%; text-align: left; background: none; border: none;
+    padding: 14px 4px; font-size: 19px; line-height: 1.45; color: var(--ink);
+    border-bottom: 1px solid var(--line); min-height: 52px; }
+  .stmt span { background-image: linear-gradient(var(--pine), var(--pine));
+    background-repeat: no-repeat; background-position: 0 100%; background-size: 0% 2px;
+    transition: background-size 0.35s ease; padding-bottom: 3px; }
+  .stmt.on span { background-size: 100% 2px; }
+  .stmt.on { color: var(--pine); }
+
+  input[type=range] { width: 100%; accent-color: var(--pine); height: 34px; margin: 4px 0 2px; }
+  input[type=text] { border: 1.5px solid var(--line); border-radius: 4px; padding: 10px 12px;
+    font-size: 15px; width: 100%; max-width: 320px; background: #fff; color: var(--ink); }
+  .addrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+  .anchors { display: flex; justify-content: space-between;
+    font-family: system-ui, -apple-system, sans-serif; font-size: 11.5px; color: var(--faint); }
+  .anchors span { max-width: 32%; }
+  .anchors span:nth-child(2) { text-align: center; }
+  .anchors span:last-child { text-align: right; }
+  .unanswered { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; color: var(--clay); }
+  .answered { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; color: var(--pine); }
+
+  .go { background: var(--pine); color: #fff; border: none; border-radius: 4px;
+    padding: 14px 24px; font-size: 16px; margin-top: 18px; min-height: 50px; }
+  .go.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .go.small { padding: 10px 16px; font-size: 14px; min-height: 42px; margin-top: 0; }
+  .go:disabled { opacity: 0.45; cursor: default; }
+  .navrow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .skip { border: none; background: none; font-family: system-ui, -apple-system, sans-serif;
+    font-size: 12.5px; color: var(--faint); text-decoration: underline; padding: 8px 0; }
+
+  .card { background: var(--card); border-radius: 6px; padding: 20px 24px; margin: 0 0 14px; }
+  .card h3 { font-family: system-ui, -apple-system, sans-serif; font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600;
+    color: var(--muted); margin: 0 0 12px; }
+  .gap-line { font-size: 17px; line-height: 1.55; margin: 0 0 14px; }
+  .route { display: block; width: 100%; text-align: left; background: none;
+    border: 1.5px solid transparent; border-radius: 6px; padding: 10px 12px;
+    font-size: 15.5px; line-height: 1.5; margin: 0 0 8px; color: var(--ink); }
+  .route:hover { border-color: var(--line); }
+  .route.picked { border-color: var(--pine); background: #2F5D5010; }
+  .route .rlabel { font-family: system-ui, -apple-system, sans-serif; font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--clay);
+    display: block; margin-bottom: 2px; }
+  .route.picked .rlabel { color: var(--pine); }
+  .sign { font-size: 15.5px; line-height: 1.55; margin: 0 0 10px; }
+  .sign .dom { font-family: system-ui, -apple-system, sans-serif; font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    display: block; margin-bottom: 2px; }
+  .legend { font-family: system-ui, -apple-system, sans-serif; font-size: 12.5px;
+    color: var(--muted); line-height: 1.6; margin: 8px 0 6px; }
+  .readout { font-size: 17px; line-height: 1.6; text-align: center; margin: 10px 0 20px; }
+  .foot { border-top: 1px solid var(--line); margin-top: 34px; padding-top: 16px; }
+  hr.soft { border: none; border-top: 1px solid var(--line); margin: 26px 0; }
+  .resume { border-left: 3px solid var(--pine); padding: 4px 0 4px 14px; margin: 18px 0; }
+  .recovery-band { border-left: 3px solid var(--clay); padding: 6px 0 6px 16px; margin: 18px 0; }
+  .recovery-band p { margin: 0 0 8px; }
+  .recovery-band p:last-child { margin: 0; }
+
+  details.edu { background: var(--card); border-radius: 6px; padding: 14px 20px; margin: 18px 0; }
+  details.edu summary { cursor: pointer; font-size: 16px; color: var(--pine); }
+  details.edu p { font-size: 15px; line-height: 1.65; }
+  details.edu .mini { font-family: system-ui, -apple-system, sans-serif; font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 16px 0 4px; }
+
+  .seg { border: 1.5px solid var(--line); background: #fff; border-radius: 4px;
+    padding: 8px 12px; font-size: 13.5px; min-height: 40px; color: var(--ink); }
+  .seg.on { border-color: var(--pine); background: var(--pine); color: #fff; }
+  .stackrow { display: block; border-bottom: 1px solid var(--line); padding: 12px 0; }
+  .stackname { display: block; font-size: 15.5px; line-height: 1.35; margin-bottom: 8px; }
+  .ctlrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .bar { display: flex; height: 30px; border-radius: 4px; overflow: hidden;
+    border: 1px solid var(--line); margin: 14px 0 4px; }
+  .bar .in { background: var(--pine); }
+  .bar .over { background: var(--clay); }
+  .barlabels { display: flex; justify-content: space-between;
+    font-family: system-ui, -apple-system, sans-serif; font-size: 12px; color: var(--muted); }
+  .shed { font-size: 15.5px; line-height: 1.55; margin: 0 0 12px; }
+  .shed .give { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; color: var(--pine); }
+  .shed .feeds { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; color: var(--clay); }
+  .x { border: none; background: none; color: var(--faint); font-size: 18px; padding: 4px 8px; }
+
+  @media (prefers-reduced-motion: reduce) { .stmt span { transition: none; } }
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff; }
+    .card, .block { border: 1px solid #ddd; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+/* Grounding: Raymaker et al. (2021) on autistic burnout (demands outpacing
+   capacity without adequate support; exhaustion, skill loss, reduced tolerance
+   to stimulus). Spoon theory: Christine Miserandino (2003). Coaching modules
+   3-6: energy budget, masking cost, sensory audit, recovery planning, scripts. */
+
+const STATEMENTS = [
+  { id: "rest",   text: "Rest isn’t restoring me." },
+  { id: "skills", text: "Things I could handle six months ago feel impossible now." },
+  { id: "sense",  text: "Sounds, lights, or textures I used to tolerate feel like too much." },
+  { id: "words",  text: "Words are harder to find. Talking costs more than it used to." },
+  { id: "switch", text: "Switching between tasks takes more than I have." },
+  { id: "stims",  text: "Stims I used to hide are showing up again." },
+  { id: "pull",   text: "I’ve pulled back from things I care about." },
+];
+
+const DOMAINS = [
+  { id: "sensory", wheel: "Senses", label: "Sound, light, and touch", bracket: "sensory processing",
+    sub: "What noise, light, touch, and busy places cost you. Some brains take in more of the world at once, so ordinary places can use up real energy.",
+    example: "A 3 might look like: quiet home, short trips out, a few calm people. An 8 might look like: a loud open office or busy school, phone buzzing, errands, and a family dinner, all in one day.",
+    hidden: ["Spending my day somewhere loud or bright","Holding it together in busy places, like stores or hallways","Clothes or textures that bother me all day","Background noise I can’t turn off"],
+    supports: ["Headphones or earplugs","Control over the lighting where I spend time","A quiet spot I can go to","People around me who keep things calm"],
+    warns: ["Sounds start to feel sharp or painful","I get snappy or irritated fast","I want to cover my ears or leave","Clothes or textures bother me more than usual","I go quiet and zone out"],
+    gap: "Sound, light, and touch are asking more of you than you’ve got right now. This kind of strain is easy to miss because it builds in the background.",
+    routes: { easier: ["Make it easier", "Use headphones, sunglasses, or softer light without waiting for permission. Comfort tools aren’t cheating."],
+      system: ["Build a system", "Plan quiet breaks after loud or busy places, before you need them. A system means it happens without you having to remember or decide."],
+      backup: ["Get backup", "Tell one person which settings are hard for you, so you’re not managing it alone."],
+      place: ["Change the place", "Change one room you use a lot. Softer light, less clutter, less noise. One change, one week, see how it lands."],
+      accept: ["Accept and budget for it", "Some days your senses will just be turned up. Accepting it means planning around it, the way you’d plan around weather."] } },
+  { id: "exec", wheel: "Tasks", label: "Starting and switching tasks", bracket: "executive function",
+    sub: "The energy it takes to get started, switch between things, and hold steps in your head. It has nothing to do with laziness or how smart you are.",
+    example: "A 3 might look like: a few familiar tasks in a routine you know. An 8 might look like: many small tasks, constant switching, and nobody explains the steps.",
+    hidden: ["Jobs with lots of small steps no one explains","Having to figure out where to even start","People thinking I’m lazy when I’m actually stuck","Starting over after every interruption"],
+    supports: ["Lists or apps that hold the steps for me","Someone who helps me get started [body doubling]","Routines that don’t change much","Deadlines set by someone else"],
+    warns: ["Small tasks start feeling huge","I avoid starting anything at all","I bounce between things and finish none","I forget steps I normally know","Everything takes twice as long"],
+    gap: "Starting and switching tasks costs you more than people can see. Being stuck is not the same as not trying.",
+    routes: { easier: ["Make it easier", "Break work into steps so small they feel almost silly. The first step should take under two minutes."],
+      system: ["Build a system", "Stop relying on memory and willpower. Lists, alarms, and routines make the environment remember for you."],
+      backup: ["Get backup", "Ask someone to sit with you while you start. Company makes starting cheaper."],
+      place: ["Change the place", "Keep the tools for regular tasks out and visible, so starting needs less setup."],
+      accept: ["Accept and budget for it", "Some tasks will always cost you more than they cost other people. Budget for it instead of being surprised by it."] } },
+  { id: "masking", wheel: "Masking", label: "Masking", bracket: "acting okay when you’re not",
+    sub: "Masking is the work of acting okay when you’re not. Copying how others act, hiding stims, rehearsing conversations, holding the mask up all day. It costs energy even when it looks effortless.",
+    example: "A 3 might look like: mostly around people you can be yourself with. An 8 might look like: performing fine all day at work or school, then collapsing at home.",
+    hidden: ["Practicing conversations in my head before they happen","Copying how others act so I seem fine","Hiding habits or movements that calm me [stims]","Replaying conversations afterward, checking if I did okay"],
+    supports: ["At least one place where I can fully be myself","People who know me and don’t need the act","Time alone to drop the act and recover"],
+    warns: ["I’m wiped out after being around people, even people I like","I lose track of what I actually think or want","I dread events I used to manage fine","The moment I’m alone, I crash"],
+    gap: "Masking is your biggest hidden cost. It drains energy all day where nobody can see it happening.",
+    routes: { easier: ["Make it easier", "Drop one piece of the act in your safest place. Flat voice allowed. No forced smiling."],
+      system: ["Build a system", "Plan alone-time after events the same way you plan the event. Put it in the calendar before something else takes the space."],
+      backup: ["Get backup", "Let one safe person see the unmasked version. One is enough to start."],
+      place: ["Change the place", "Spend more hours in places that don’t need the performance, fewer in ones that do."],
+      accept: ["Accept and budget for it", "Sometimes masking is a choice you make to stay safe. Choosing it on purpose costs less than running it on autopilot."] } },
+  { id: "intero", wheel: "Body", label: "Reading my own body", bracket: "interoception",
+    sub: "How well your body’s signals reach you: hunger, thirst, tiredness, stress. For many neurodivergent folks the signals arrive late or quietly, so needs get missed until they’re urgent.",
+    example: "A 3 might look like: meals and rest mostly happen on time without effort. An 8 might look like: food, water, and sleep all depend on you noticing, and the noticing comes late.",
+    hidden: ["Missing meals because I don’t feel hungry until I’m shaky","Not noticing I’m tired until I’m wrecked","Not knowing I’m stressed until I explode or shut down","Forgetting to drink water all day"],
+    supports: ["Alarms or reminders for food and water","Regular mealtimes I don’t have to think about","Someone who checks in on me","A watch or app that tracks how I’m doing"],
+    warns: ["I get shaky, dizzy, or a headache out of nowhere","I suddenly realize I haven’t eaten all day","My mood drops fast and I don’t know why","I only notice I was stressed after the meltdown or shutdown"],
+    gap: "Your body’s signals arrive late, so problems feel sudden even though they were building for hours.",
+    routes: { easier: ["Make it easier", "Put food, water, and rest on a schedule instead of waiting to feel the need."],
+      system: ["Build a system", "Set alarms for food, water, and rest. Let the alarm do the noticing your body doesn’t."],
+      backup: ["Get backup", "Ask someone close to flag it when you seem hungry, tired, or wound up."],
+      place: ["Change the place", "Keep water and easy snacks where you can see them. If it’s in sight, it gets used."],
+      accept: ["Accept and budget for it", "Late signals are how your body works. A schedule just does the noticing for you, and there’s no shame in that."] } },
+  { id: "social", wheel: "People", label: "People and social energy", bracket: "",
+    sub: "What being around people costs you, even people you love. Meetings, gatherings, group chats, and being “on” all count, whether or not you enjoyed them.",
+    example: "A 3 might look like: one or two easy people, on your terms. An 8 might look like: meetings or classes all day, plus group chats, plus plans in the evening.",
+    hidden: ["Group chats I feel I have to keep up with","Events I attend so people don’t get upset","Being “on” at school or work all day","Small talk that goes nowhere but still drains me"],
+    supports: ["Friends I can be quiet around","Being able to leave early without drama","Recovery time after social things","Online or text friendships that fit my pace"],
+    warns: ["I run out of words partway through","I start watching the clock or the exits","I get irritable with people I actually like","I cancel everything for days afterward"],
+    gap: "Time with people is costing more than it gives back right now, even the good kind.",
+    routes: { easier: ["Make it easier", "Go, but shorter. Arrive late or leave early on purpose."],
+      system: ["Build a system", "Cap it at one social thing per day, with quiet time after."],
+      backup: ["Get backup", "Find your quiet-company people, the ones you don’t have to perform for."],
+      place: ["Change the place", "Pick smaller, calmer settings when you get a choice."],
+      accept: ["Accept and budget for it", "Needing more recovery than others isn’t antisocial. It’s your battery size."] } },
+  { id: "comms", wheel: "Words", label: "Communication", bracket: "",
+    sub: "The work of finding words, replying, and being understood. Calls, quick answers, and explaining yourself can cost real energy, especially on low days.",
+    example: "A 3 might look like: little talking needed, and you choose when to reply. An 8 might look like: calls, instant answers expected, and explaining yourself over and over.",
+    hidden: ["Phone calls I have to psych myself up for","Being expected to answer right away","Explaining myself over and over","People reading my tone wrong"],
+    supports: ["Being allowed to text or email instead of calling","Time to think before I answer","People who ask what I mean instead of guessing","Saved messages I can reuse"],
+    warns: ["Words come out wrong or won’t come at all","I put off replying until it becomes a problem","Talking starts to feel like heavy lifting","I go quiet in conversations I care about"],
+    gap: "Communication is taking real effort right now. Finding words is work, and work uses fuel.",
+    routes: { easier: ["Make it easier", "Switch what you can to text or email, so you answer when you’re ready."],
+      system: ["Build a system", "Save the messages you send often and reuse them."],
+      backup: ["Get backup", "Tell the people close to you that slow replies mean you’re processing, not ignoring them."],
+      place: ["Change the place", "Cut down the channels. Fewer apps and threads to keep up with."],
+      accept: ["Accept and budget for it", "Some days the words won’t come. Quiet days are allowed."] } },
+  { id: "reg", wheel: "Feelings", label: "Big feelings and staying steady", bracket: "regulation",
+    sub: "How your feelings rise, settle, or go flat. When the tank is low, feelings get bigger and harder to steady. Big reactions usually mean low fuel, not a bad attitude.",
+    example: "A 3 might look like: calm days, few surprises for your feelings. An 8 might look like: holding big feelings in all day with no space to let them out.",
+    hidden: ["Holding big feelings in all day so no one sees","Situations that set me off that I can’t avoid","Being told to calm down instead of being helped","Running on too little sleep"],
+    supports: ["Things that reliably calm me, like music, movement, or pressure","A person who stays steady when I’m not [co-regulation]","Space to step away when it’s too much","Enough sleep most nights"],
+    warns: ["Little things suddenly feel enormous","I snap at people over nothing","I go numb or flat instead of upset","My body feels buzzy, tight, or on edge"],
+    gap: "Your feelings are working harder than your rest can pay for. Big reactions usually mean an empty tank, not a bad attitude.",
+    routes: { easier: ["Make it easier", "Do the thing that calms you before the hard parts of the day, not just after."],
+      system: ["Build a system", "Same calming routine, same time, every day. Boring on purpose."],
+      backup: ["Get backup", "Borrow steadiness. Time with someone calm counts as regulation."],
+      place: ["Change the place", "Remove one thing that sets you off instead of practicing enduring it."],
+      accept: ["Accept and budget for it", "Feeling things strongly is part of your wiring. The goal is support, not shrinking yourself."] } },
+  { id: "trans", wheel: "Change", label: "Changes and surprises", bracket: "transitions",
+    sub: "What it costs you when plans change, things stay uncertain, or you’re rushed between activities. Even good surprises use energy.",
+    example: "A 3 might look like: the same routine most days. An 8 might look like: plans changing constantly and being rushed from one thing to the next.",
+    hidden: ["Plans changing at the last minute","Not knowing what’s coming next","Being rushed from one thing to the next","Surprises, even good ones"],
+    supports: ["Knowing the plan ahead of time","Warnings before things change","Extra time between activities","Routines that stay the same"],
+    warns: ["I freeze when plans change","I get anxious the night before busy days","Endings and goodbyes feel weirdly hard","I need a long time to get going after switching"],
+    gap: "Change and uncertainty quietly use up your energy. Even small surprises cost you some.",
+    routes: { easier: ["Make it easier", "Ask for the plan, and for a heads-up when it changes."],
+      system: ["Build a system", "Write tomorrow down tonight, even roughly. Ten minutes of planning buys a cheaper morning."],
+      backup: ["Get backup", "Ask the people around you to warn you instead of springing things."],
+      place: ["Change the place", "Keep gaps between activities so switching has room to happen."],
+      accept: ["Accept and budget for it", "Needing to know what’s coming isn’t controlling. It’s how you budget energy."] } },
+];
+
+const PRESET_DEMANDS = [
+  { n: "Getting up, ready, and out the door", d: "exec" },
+  { n: "Showering and getting clean", d: "sensory" },
+  { n: "Work or school day", d: "exec" },
+  { n: "Commute or travel", d: "sensory" },
+  { n: "Meetings or classes", d: "social" },
+  { n: "Group chats and messages", d: "comms" },
+  { n: "Cooking and meals", d: "intero" },
+  { n: "Daily chores (dishes, tidying, laundry)", d: "exec" },
+  { n: "Errands and shopping", d: "sensory" },
+  { n: "Caring for kids, family, or pets", d: "reg" },
+  { n: "Social plans", d: "social" },
+  { n: "Appointments and paperwork", d: "trans" },
+  { n: "Masking through the day", d: "masking" },
+  { n: "Being reachable all evening", d: "comms" },
+];
+
+const KEY = "fullmap-v2";
+const SNAP_KEY = "fullmap-snap";
+const blankAnswers = () => Object.fromEntries(DOMAINS.map(d =>
+  [d.id, { demand: null, hidden: [], extraHidden: [], good: null, drained: null,
+           supports: [], extraSupports: [], warns: [] }]));
+const blankState = () => ({ answers: blankAnswers(), marks: [], choices: {},
+  spoons: { budget: 12, stack: [] } });
+
+function load() {
+  try { const raw = localStorage.getItem(KEY);
+    if (raw) { const s = JSON.parse(raw);
+      return { ...blankState(), ...s, answers: { ...blankAnswers(), ...(s.answers || {}) } }; }
+  } catch (e) {}
+  return blankState();
+}
+
+const isDone = (a) => a.demand !== null && a.good !== null && a.drained !== null;
+
+const demandWord = (v) => v <= 2 ? "very little" : v <= 4 ? "a light amount"
+  : v <= 6 ? "a fair amount" : v <= 8 ? "a heavy amount" : "a nonstop amount";
+const capWord = (v) => v <= 2 ? "almost nothing" : v <= 4 ? "a little"
+  : v <= 6 ? "some" : v <= 8 ? "a good amount" : "plenty";
+
+function scores(a) {
+  const hid = a.hidden.length + a.extraHidden.length;
+  const sup = a.supports.length + a.extraSupports.length;
+  const demand = Math.min(10, a.demand + 0.5 * hid);
+  const capG = Math.min(10, a.good + 0.4 * sup);
+  const capD = Math.min(capG, Math.min(10, a.drained + 0.4 * sup));
+  const state = demand <= capD ? "covered" : demand <= capG ? "goodOnly" : "over";
+  return { demand, capG, capD, state, strain: demand - capD };
+}
+
+function Slider({ label, example, why, value, onChange, lo, mid, hi }) {
+  return (
+    <div className="block">
+      <h3>{label}</h3>
+      <p className="mech">Slide to answer. Think about the last two weeks, not your best week. {value === null
+        ? <span className="unanswered">Not answered yet.</span>
+        : <span className="answered">Answered.</span>}</p>
+      {example && <p className="example">{example}</p>}
+      <input type="range" min="0" max="10" step="1"
+        value={value === null ? 5 : value}
+        aria-label={label}
+        onChange={e => onChange(Number(e.target.value))} />
+      <div className="anchors"><span>0 · {lo}</span><span>5 · {mid}</span><span>10 · {hi}</span></div>
+      {why && <p className="why">Why we ask: {why}</p>}
+    </div>
+  );
+}
+
+function Chips({ label, mech, why, options, picked, onToggle, max, noneLabel,
+                 extras, onAddExtra, onRemoveExtra }) {
+  const [draft, setDraft] = useState("");
+  const add = () => { const t = draft.trim(); if (t) { onAddExtra(t); setDraft(""); } };
+  return (
+    <div className="block">
+      <h3>{label}</h3>
+      <p className="mech">{mech}</p>
+      <div role="group" aria-label={label}>
+        {options.map((o, i) => (
+          <button key={i} className={"chip" + (picked.includes(o) ? " on" : "")}
+            aria-pressed={picked.includes(o)}
+            disabled={max && !picked.includes(o) && picked.length >= max}
+            onClick={() => onToggle(o)}>{o}</button>
+        ))}
+        {extras && extras.map((o, i) => (
+          <button key={"x" + i} className="chip on" onClick={() => onRemoveExtra(o)}
+            title="Tap to remove">{o} ✕</button>
+        ))}
+      </div>
+      {onAddExtra && (
+        <div className="addrow no-print">
+          <input type="text" value={draft} placeholder="Add your own (optional)"
+            aria-label="Add your own"
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") add(); }} />
+          <button className="go small ghost" onClick={add}>Add</button>
+        </div>
+      )}
+      {why && <p className="why">Why we ask: {why}</p>}
+    </div>
+  );
+}
+
+function Wheel({ results, prev, onPick, selected }) {
+  const n = results.length;
+  const cx = 170, cy = 168, R = 112;
+  const pt = (i, v) => {
+    const ang = (-90 + i * 360 / n) * Math.PI / 180;
+    const r = R * Math.max(0.04, v / 10);
+    return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)];
+  };
+  const poly = (key) => results.map((r, i) => pt(i, r[key]).map(x => x.toFixed(1)).join(",")).join(" ");
+  const prevPoly = prev
+    ? results.map((r, i) => prev[r.d.id] !== undefined ? pt(i, prev[r.d.id]).map(x => x.toFixed(1)).join(",") : null)
+    : null;
+  const prevOk = prevPoly && prevPoly.every(p => p !== null);
+  return (
+    <svg viewBox="0 0 340 348" width="100%" style={{maxWidth: 430, display: "block", margin: "0 auto"}}
+      role="img" aria-label="Wheel comparing what life asks of you with what you can handle on good and drained days. Tap an area name to open it.">
+      {[0.25, 0.5, 0.75, 1].map(f => (
+        <circle key={f} cx={cx} cy={cy} r={R * f} fill="none" stroke="#CBC7BA" strokeWidth="0.7" />
+      ))}
+      {results.map((r, i) => {
+        const [x, y] = pt(i, 10);
+        const [lx, ly] = pt(i, 12.4);
+        const col = r.state === "over" ? "#B0603C" : r.state === "goodOnly" ? "#8A5A3C" : "#6B675C";
+        return (
+          <g key={i} style={{cursor: "pointer"}} onClick={() => onPick(r.d.id)}>
+            <line x1={cx} y1={cy} x2={x} y2={y} stroke="#CBC7BA" strokeWidth="0.7" />
+            <circle cx={lx} cy={ly} r="16" fill="transparent" />
+            <text x={lx} y={ly} textAnchor="middle" dominantBaseline="middle"
+              fontFamily="system-ui, sans-serif" fontSize="10.5"
+              fill={col}
+              fontWeight={r.state !== "covered" ? "600" : "400"}
+              textDecoration={selected === r.d.id ? "underline" : "none"}>{r.d.wheel}</text>
+          </g>
+        );
+      })}
+      <polygon points={poly("capG")} fill="#2F5D50" fillOpacity="0.15" stroke="#2F5D50" strokeWidth="1" />
+      <polygon points={poly("capD")} fill="#2F5D50" fillOpacity="0.32" stroke="#2F5D50" strokeWidth="1.5" />
+      {prevOk && <polygon points={prevPoly.join(" ")} fill="none" stroke="#8A8578"
+        strokeWidth="1.5" strokeDasharray="4,4" />}
+      <polygon points={poly("demand")} fill="#B0603C" fillOpacity="0.13" stroke="#B0603C" strokeWidth="2.5" />
+    </svg>
+  );
+}
+
+function App() {
+  const [st, setSt] = useState(load);
+  const [screen, setScreen] = useState("start");
+  const [idx, setIdx] = useState(0);
+  const [sel, setSel] = useState(null);
+  const { answers, marks, choices, spoons } = st;
+  const recovery = marks.length >= 3;
+
+  useEffect(() => {
+    try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
+  }, [st]);
+
+  const setA = (id, field, value) =>
+    setSt(s => ({ ...s, answers: { ...s.answers, [id]: { ...s.answers[id], [field]: value } } }));
+  const toggleA = (id, field, opt, max) =>
+    setSt(s => {
+      const cur = s.answers[id][field];
+      let next = cur.includes(opt) ? cur.filter(x => x !== opt)
+        : (max && cur.length >= max) ? cur : [...cur, opt];
+      return { ...s, answers: { ...s.answers, [id]: { ...s.answers[id], [field]: next } } };
+    });
+  const addExtra = (id, field, val) =>
+    setSt(s => ({ ...s, answers: { ...s.answers, [id]: { ...s.answers[id],
+      [field]: [...s.answers[id][field], val] } } }));
+  const rmExtra = (id, field, val) =>
+    setSt(s => ({ ...s, answers: { ...s.answers, [id]: { ...s.answers[id],
+      [field]: s.answers[id][field].filter(x => x !== val) } } }));
+  const toggleMark = (mid) =>
+    setSt(s => ({ ...s, marks: s.marks.includes(mid) ? s.marks.filter(x => x !== mid) : [...s.marks, mid] }));
+  const pickRoute = (domId, key) =>
+    setSt(s => ({ ...s, choices: { ...s.choices, [domId]: s.choices[domId] === key ? undefined : key } }));
+  const setSpoons = (patch) =>
+    setSt(s => ({ ...s, spoons: { ...s.spoons, ...patch } }));
+
+  const doneCount = DOMAINS.filter(d => isDone(answers[d.id])).length;
+  const hasSaved = doneCount > 0 || DOMAINS.some(d => answers[d.id].demand !== null) || marks.length > 0;
+
+  /* ---------- intro ---------- */
+  if (screen === "start") return (
+    <div className="wrap">
+      <div className="eyebrow">The Difference Map</div>
+      <h1 style={{fontSize: 36, marginBottom: 4}}>The Difference Map</h1>
+      <p className="lede" style={{fontSize: 19, marginBottom: 14}}>Understand your neurodivergence, and where your energy goes.</p>
+      <p className="lede">This tool helps you understand your neurodivergence in a real, practical way. Not a label, a map. It looks at eight areas of your life, sensory, focus, masking, feelings, and more, and shows how your brain handles each one differently from what the world calls typical. Then it compares your demand, what your days ask of you, with your capacity, what you can actually give, and shows you exactly where you’re being squeezed, and how to fix it.</p>
+      <p className="lede">Made for neurodivergent folks: people whose brains work differently from what the world treats as typical. That includes autistic folks, ADHDers, dyslexic and dyspraxic folks, and plenty of people with no label at all. It’s built on research into neurodivergent burnout, which happens when life keeps asking more than you have, for too long, without enough help.</p>
+
+      <div className="card">
+        <h3>What you’ll get at the end</h3>
+        <p className="lede">A wheel showing where life asks more than you’ve got. Your squeeze points, each with five ways through, and you pick one. A spoon audit of your typical day, with a list of what you could drop. And a printable operating manual you can hand to a parent, partner, teacher, manager, or coach.</p>
+      </div>
+
+      <div className="card">
+        <h3>What this is not</h3>
+        <p className="lede">Not a test. No score, no grade, no diagnosis, no right answers. Nobody sees your answers, nothing leaves this device, and this is education and self-knowledge, not therapy or medical care.</p>
+      </div>
+
+      <div className="card">
+        <h3>How to answer</h3>
+        <p className="lede">Answer for the last two weeks, not your best week. Your first answer is usually the honest one. You can skip anything, and you can stop anytime. Your answers save on this device as you go.</p>
+        <p className="quiet">The whole thing takes about 30 to 40 minutes. Five of the eight areas is enough to build your map, so you don’t need to finish in one sitting.</p>
+      </div>
+
+      {hasSaved && (
+        <div className="resume">
+          <p className="lede" style={{margin: 0}}>You’ve already started. {doneCount} of 8 areas finished.</p>
+        </div>
+      )}
+      <div className="navrow no-print">
+        <button className="go" onClick={() => { hasSaved ? setScreen("domain") : setScreen("check"); }}>
+          {hasSaved ? "Keep going" : "Start"}
+        </button>
+        {hasSaved && <button className="go ghost" onClick={() => setScreen("check")}>Redo the check-in</button>}
+        {doneCount >= 3 && <button className="go ghost" onClick={() => setScreen("map")}>See my map now</button>}
+      </div>
+    </div>
+  );
+
+  /* ---------- recognition check ---------- */
+  if (screen === "check") return (
+    <div className="wrap">
+      <div className="eyebrow">The Difference Map</div>
+      <div className="step-count">Check-in, before the areas</div>
+      <h2>First, a quick check-in.</h2>
+      <p className="quiet" style={{marginBottom: 6}}>These are the signs researchers found in autistic and ADHD burnout.</p>
+      <p className="lede" style={{marginBottom: 2}}><b>Tap any line that’s true for you right now.</b></p>
+      <p className="quiet" style={{marginBottom: 18}}>No number of taps is right or wrong.</p>
+      <p className="tiny" style={{marginBottom: 14}}>Why we ask: if several of these are true, this tool will build you a recovery map instead of a normal one, because a person in burnout needs a different plan.</p>
+      <div role="group" aria-label="Recognition statements">
+        {STATEMENTS.map(s => (
+          <button key={s.id} aria-pressed={marks.includes(s.id)}
+            className={"stmt" + (marks.includes(s.id) ? " on" : "")}
+            onClick={() => toggleMark(s.id)}>
+            <span>{s.text}</span>
+          </button>
+        ))}
+      </div>
+      <div className="no-print navrow">
+        <button className="go" onClick={() => { setIdx(0); setScreen("domain"); }}>Next</button>
+        <button className="skip" onClick={() => { setIdx(0); setScreen("domain"); }}>Skip this</button>
+      </div>
+    </div>
+  );
+
+  /* ---------- domains ---------- */
+  if (screen === "domain") {
+    const d = DOMAINS[idx];
+    const a = answers[d.id];
+    return (
+      <div className="wrap">
+        <div className="eyebrow">The Difference Map</div>
+        <div className="step-count">Area {idx + 1} of 8 · Answer for the last two weeks, not your best week</div>
+        <h2>{d.label} {d.bracket && <span className="bracket">[{d.bracket}]</span>}</h2>
+        <p className="quiet" style={{marginBottom: 18}}>{d.sub}</p>
+
+        <Slider label="How much does a normal day ask of you here?"
+          example={d.example}
+          why="strain starts with how much life asks, so we measure the asking first."
+          value={a.demand} onChange={v => setA(d.id, "demand", v)}
+          lo="Almost nothing" mid="A fair amount" hi="All day, nonstop" />
+
+        <Chips label="Which of these hidden costs are part of your normal week?"
+          mech="Tap as many as apply. Leave them all blank if none fit."
+          why="costs nobody sees still come out of your budget."
+          options={d.hidden}
+          picked={a.hidden} onToggle={o => toggleA(d.id, "hidden", o)}
+          extras={a.extraHidden}
+          onAddExtra={v => addExtra(d.id, "extraHidden", v)}
+          onRemoveExtra={v => rmExtra(d.id, "extraHidden", v)} />
+
+        <Slider label="On a good day, how much can you handle here?"
+          example="A good day means: slept okay, nothing unusual going on, tank reasonably full."
+          value={a.good} onChange={v => setA(d.id, "good", v)}
+          lo="Almost none" mid="Some" hi="Plenty" />
+
+        <Slider label="And on a drained day, how much can you handle here?"
+          example="A drained day means: bad sleep, already stretched, tank near empty. Be honest, this number matters most."
+          why="your real budget is closer to your drained days than your good ones, so we plan around the drained number."
+          value={a.drained} onChange={v => setA(d.id, "drained", v)}
+          lo="Almost none" mid="Some" hi="Plenty" />
+
+        <Chips label="What already helps you here?"
+          mech="Tap as many as apply. Leave them all blank if nothing helps yet."
+          why="what’s already working is the cheapest help you’ll ever get, so we protect it before adding anything."
+          options={d.supports}
+          picked={a.supports} onToggle={o => toggleA(d.id, "supports", o)}
+          extras={a.extraSupports}
+          onAddExtra={v => addExtra(d.id, "extraSupports", v)}
+          onRemoveExtra={v => rmExtra(d.id, "extraSupports", v)} />
+
+        <Chips label="What’s usually your first sign that this area is getting to be too much?"
+          mech="Tap up to 2. If you’re not sure, leave it blank."
+          why="these become your personal early-warning list at the end, so you can catch overload before the crash."
+          options={d.warns} max={2}
+          picked={a.warns} onToggle={o => toggleA(d.id, "warns", o, 2)} />
+
+        <div className="navrow no-print">
+          {idx > 0
+            ? <button className="go ghost" onClick={() => { setIdx(idx - 1); window.scrollTo(0, 0); }}>Back</button>
+            : <button className="go ghost" onClick={() => setScreen("check")}>Back</button>}
+          {idx < 7
+            ? <button className="go" onClick={() => { setIdx(idx + 1); window.scrollTo(0, 0); }}>Next area</button>
+            : <button className="go" onClick={() => { setScreen("spoons"); window.scrollTo(0, 0); }}>Next: the spoon audit</button>}
+          <button className="skip" onClick={() => {
+            if (idx < 7) { setIdx(idx + 1); window.scrollTo(0, 0); }
+            else { setScreen("spoons"); window.scrollTo(0, 0); }
+          }}>Skip this area</button>
+        </div>
+        <p className="tiny" style={{marginTop: 12}}>Answers save on their own. {doneCount} of 8 areas finished so far.</p>
+      </div>
+    );
+  }
+
+  /* ---------- spoon audit ---------- */
+  if (screen === "spoons") {
+    const total = spoons.stack.reduce((t, it) => t + it.cost, 0);
+    const over = total - spoons.budget;
+    const inStack = (n) => spoons.stack.some(it => it.name === n);
+    const addItem = (n, dom) => setSpoons({ stack: [...spoons.stack,
+      { name: n, cost: 1, tag: "must", dom: dom || null }] });
+    const updateItem = (i, patch) => setSpoons({ stack: spoons.stack.map((it, j) =>
+      j === i ? { ...it, ...patch } : it) });
+    const removeItem = (i) => setSpoons({ stack: spoons.stack.filter((_, j) => j !== i) });
+    return (
+      <div className="wrap">
+        <div className="eyebrow">The Difference Map</div>
+        <div className="step-count">The spoon audit · after the 8 areas</div>
+        <h2>How many spoons does your day actually cost?</h2>
+        <p className="lede">Spoons are a way of counting energy, from Christine Miserandino’s spoon theory (2003). You start the day with a set number of spoons. Everything you do costs some. When they’re gone, they’re gone, and pushing past zero borrows from tomorrow.</p>
+        <p className="quiet">Spoons exist to help you respect your limits. Going past them changes how tomorrow starts, and doing it every day is how burnout builds. Twelve is the number from the original story, and it’s a helpful starting point, not a rule. The real number changes from person to person and day to day, so expect it to take a few days of real life to find yours. Start at 12 and adjust as you learn.{recovery ? " Since the check-in showed burnout signs, consider lowering your budget below 12. In recovery, the honest budget is smaller." : ""}</p>
+
+        <div className="block">
+          <h3>Your daily budget</h3>
+          <p className="mech">Tap − or + to adjust. Keep 12 if you’re not sure.</p>
+          <div className="navrow">
+            <button className="seg" aria-label="Lower budget"
+              onClick={() => setSpoons({ budget: Math.max(4, spoons.budget - 1) })}>−</button>
+            <span style={{fontSize: 22, minWidth: 44, textAlign: "center"}}>{spoons.budget}</span>
+            <button className="seg" aria-label="Raise budget"
+              onClick={() => setSpoons({ budget: Math.min(20, spoons.budget + 1) })}>+</button>
+            <span className="tiny">spoons per day</span>
+          </div>
+        </div>
+
+        <div className="block">
+          <h3>What does a typical day ask of you?</h3>
+          <p className="mech">Tap everything that’s part of a normal day for you. It gets added to your stack below.</p>
+          {PRESET_DEMANDS.map((p, i) => (
+            <button key={i} className={"chip" + (inStack(p.n) ? " on" : "")}
+              disabled={inStack(p.n)}
+              onClick={() => addItem(p.n, p.d)}>{p.n}</button>
+          ))}
+          <CustomAdd onAdd={(t) => { if (!inStack(t)) addItem(t, null); }} />
+        </div>
+
+        {spoons.stack.length > 0 && (
+          <div className="block">
+            <h3>Your stack</h3>
+            <p className="mech">For each one, two quick picks. Cost: 1 is light, 2 is medium, 3 is heavy. Then tag it: Must means it can’t move, Shrink means you could make it smaller, Drop means you could stop doing it. Tap ✕ to remove a line.</p>
+            {spoons.stack.map((it, i) => (
+              <div className="stackrow" key={i}>
+                <span className="stackname">{it.name}</span>
+                <div className="ctlrow">
+                  {[1, 2, 3].map(c => (
+                    <button key={c} className={"seg" + (it.cost === c ? " on" : "")}
+                      aria-pressed={it.cost === c}
+                      onClick={() => updateItem(i, { cost: c })}>{c}</button>
+                  ))}
+                  {[["must", "Must"], ["shrink", "Shrink"], ["drop", "Drop"]].map(([k, lbl]) => (
+                    <button key={k} className={"seg" + (it.tag === k ? " on" : "")}
+                      aria-pressed={it.tag === k}
+                      onClick={() => updateItem(i, { tag: k })}>{lbl}</button>
+                  ))}
+                  <button className="x" aria-label={"Remove " + it.name}
+                    onClick={() => removeItem(i)}>✕</button>
+                </div>
+              </div>
+            ))}
+            <div className="bar" aria-hidden="true">
+              <div className="in" style={{width: (Math.min(total, spoons.budget) / Math.max(total, spoons.budget) * 100) + "%"}}></div>
+              {over > 0 && <div className="over" style={{width: (over / total * 100) + "%"}}></div>}
+            </div>
+            <div className="barlabels"><span>0</span><span>budget: {spoons.budget}</span><span>{total} used</span></div>
+            <p className="lede" style={{marginTop: 12}}>
+              {over > 0
+                ? `Your day asks about ${total} spoons. Your budget is ${spoons.budget}. You’re running about ${over} spoon${over === 1 ? "" : "s"} over, every day. Running over every day is how burnout builds.`
+                : `Your day asks about ${total} spoons against a budget of ${spoons.budget}. You’re inside your budget. The map on the next page shows whether any single area is still squeezed.`}
+            </p>
+          </div>
+        )}
+
+        <div className="navrow no-print">
+          <button className="go ghost" onClick={() => { setIdx(7); setScreen("domain"); }}>Back</button>
+          <button className="go" onClick={() => { setScreen("map"); window.scrollTo(0, 0); }}>Show my map</button>
+          <button className="skip" onClick={() => { setScreen("map"); window.scrollTo(0, 0); }}>Skip the audit</button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- map / manual ---------- */
+  const results = DOMAINS.filter(d => isDone(answers[d.id]))
+    .map(d => ({ ...scores(answers[d.id]), d }));
+
+  if (results.length < 3) return (
+    <div className="wrap">
+      <div className="eyebrow">The Difference Map</div>
+      <h2>Not enough answered yet.</h2>
+      <p className="lede">The map needs at least 3 finished areas to say anything true. You’ve finished {results.length}. Each area takes about 3 minutes, and 5 areas makes a solid map.</p>
+      <button className="go no-print" onClick={() => { setIdx(0); setScreen("domain"); }}>Back to the questions</button>
+    </div>
+  );
+
+  /* snapshot: keep previous run as ghost */
+  let prevDemands = null;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const snaps = JSON.parse(localStorage.getItem(SNAP_KEY) || "{}");
+    if (snaps.latest && snaps.latest.date !== today) {
+      snaps.prev = snaps.latest;
+    }
+    snaps.latest = { date: today,
+      demands: Object.fromEntries(results.map(r => [r.d.id, r.demand])) };
+    localStorage.setItem(SNAP_KEY, JSON.stringify(snaps));
+    if (snaps.prev) prevDemands = snaps.prev.demands;
+  } catch (e) {}
+
+  const squeezed = [...results].filter(r => r.state !== "covered")
+    .sort((x, y) => y.strain - x.strain);
+  const overNames = results.filter(r => r.state === "over").map(r => r.d.label);
+  const goodOnlyNames = results.filter(r => r.state === "goodOnly").map(r => r.d.label);
+  const joinNames = (arr) => arr.length === 1 ? arr[0]
+    : arr.slice(0, -1).join(", ") + " and " + arr[arr.length - 1];
+  const coveredNames = results.filter(r => r.state === "covered").map(r => r.d.label);
+
+  const squeezeIds = squeezed.map(r => r.d.id);
+  const total = spoons.stack.reduce((t, it) => t + it.cost, 0);
+  const overSpoons = total - spoons.budget;
+  const shedList = spoons.stack
+    .filter(it => it.tag !== "must")
+    .sort((a, b) => (a.tag === b.tag ? b.cost - a.cost : a.tag === "drop" ? -1 : 1));
+  const chosen = squeezed.filter(r => choices[r.d.id])
+    .map(r => ({ dom: r.d.label, text: r.d.routes[choices[r.d.id]][1] }));
+  const allWarns = results.filter(r => answers[r.d.id].warns.length)
+    .map(r => ({ dom: r.d.label, list: answers[r.d.id].warns }));
+  const allSup = results.filter(r => (answers[r.d.id].supports.length + answers[r.d.id].extraSupports.length) > 0)
+    .map(r => ({ dom: r.d.label, list: [...answers[r.d.id].supports, ...answers[r.d.id].extraSupports] }));
+  const redoDate = new Date(Date.now() + 14 * 86400000).toLocaleDateString();
+  const selR = sel && results.find(r => r.d.id === sel);
+
+  return (
+    <div className="wrap">
+      <div className="eyebrow">The Difference Map</div>
+      <h2>{recovery ? "My recovery map" : "My operating manual"}</h2>
+      <p className="quiet">Made {new Date().toLocaleDateString()}. Based on {results.length} of 8 areas. Redo it around {redoDate} and the old map will show behind the new one, so you can see what changed.</p>
+
+      {recovery && (
+        <div className="recovery-band">
+          <p className="lede">Your check-in showed several burnout signs, so this map is framed for recovery. One thing to know before anything else: getting out takes time. People who’ve been through it describe months, not weekends.</p>
+          <p className="lede">And the trap to avoid: energy comes back before durability does. The first week you feel better is thin ice, and sprinting back to full load on it is how people cycle in and out of burnout for years. Shed first. Hold the lighter load for weeks even when you feel fine. Then add things back one at a time.</p>
+        </div>
+      )}
+
+      <Wheel results={results} prev={prevDemands} onPick={(id) => setSel(sel === id ? null : id)} selected={sel} />
+      <p className="legend">
+        <b style={{color: "#2F5D50"}}>Deep pine</b> is what you can handle even on drained days.<br/>
+        <b style={{color: "#2F5D50"}}>Light pine</b> is what only fits on good days.<br/>
+        <b style={{color: "#B0603C"}}>Clay</b> is what a normal day asks.<br/>
+        Wherever clay reaches past pine, that’s the squeeze.<br/>
+        {prevDemands && <React.Fragment>The dotted line is your last map.<br/></React.Fragment>}
+        Tap any area name to open it.
+      </p>
+      <div className="card">
+        <h3>What your map says</h3>
+        {overNames.length > 0 &&
+          <p className="sign"><span className="dom">Over budget, even on your good days</span>You’re over budget even on your good days in {joinNames(overNames)}. That means effort alone can’t close this gap. Something has to change, not just how hard you try.</p>}
+        {goodOnlyNames.length > 0 &&
+          <p className="sign"><span className="dom">Fits only on good days</span>You’re getting by in {joinNames(goodOnlyNames)}, but only on your good days. This is where crash cycles start: it works until a bad day hits, then it doesn’t.</p>}
+        {coveredNames.length > 0 &&
+          <p className="sign"><span className="dom">Holding steady</span>You’re holding steady in {joinNames(coveredNames)}, even on your drained days. This is working.</p>}
+        {overNames.length === 0 && goodOnlyNames.length === 0 &&
+          <p className="gap-line">Right now, what you’ve got is covering what life asks, even on drained days. Keep this map as your baseline.</p>}
+      </div>
+
+      {selR && (
+        <div className="card">
+          <h3>{selR.d.label}, opened up</h3>
+          <p className="gap-line">A normal day asks {demandWord(selR.demand)} of you here. On good days you’ve got {capWord(selR.capG)}, on drained days {capWord(selR.capD)}.
+            {selR.state === "over" ? " The asking is bigger than even your best day, so effort alone can’t close this one." :
+             selR.state === "goodOnly" ? " This fits only when you’re rested, which makes it a crash-cycle risk." :
+             " Right now you’re covering this, even drained."}</p>
+          {(answers[selR.d.id].hidden.length + answers[selR.d.id].extraHidden.length) > 0 &&
+            <p className="sign"><span className="dom">Hidden costs you named</span>{[...answers[selR.d.id].hidden, ...answers[selR.d.id].extraHidden].join(". ")}.</p>}
+          {(answers[selR.d.id].supports.length + answers[selR.d.id].extraSupports.length) > 0 &&
+            <p className="sign"><span className="dom">Already helping</span>{[...answers[selR.d.id].supports, ...answers[selR.d.id].extraSupports].join(". ")}.</p>}
+          {answers[selR.d.id].warns.length > 0 &&
+            <p className="sign"><span className="dom">Your first signs of too much</span>{answers[selR.d.id].warns.join(". ")}.</p>}
+        </div>
+      )}
+
+      {squeezed.length === 0 ? (
+        <div className="card">
+          <h3>Where the squeeze is</h3>
+          <p className="gap-line">No area is running short right now. Keep this as your baseline and redo it when things feel different, because the gap shows up on this map before it shows up as burnout.</p>
+        </div>
+      ) : squeezed.map((r, i) => (
+        <div className="card" key={i}>
+          <h3>Squeeze point {i + 1}: {r.d.label}{r.state === "goodOnly" ? " (good days only)" : ""}</h3>
+          <p className="gap-line">{r.d.gap}{r.state === "goodOnly" ? " Right now it fits only on your good days, and relying on good days is how the crash cycle starts." : ""}</p>
+          <p className="mech">Five ways through. Tap the ONE you’ll try first. Your pick goes into your takeaway at the bottom.</p>
+          {Object.keys(r.d.routes).map(k => (
+            <button key={k} className={"route" + (choices[r.d.id] === k ? " picked" : "")}
+              aria-pressed={choices[r.d.id] === k}
+              onClick={() => pickRoute(r.d.id, k)}>
+              <span className="rlabel">{r.d.routes[k][0]}{choices[r.d.id] === k ? " · trying this first" : ""}</span>
+              {r.d.routes[k][1]}
+            </button>
+          ))}
+        </div>
+      ))}
+
+      {spoons.stack.length > 0 && (
+        <div className="card">
+          <h3>The spoon math</h3>
+          <p className="gap-line">{overSpoons > 0
+            ? `Your day asks about ${total} spoons against a budget of ${spoons.budget}, so you need to find about ${overSpoons} spoon${overSpoons === 1 ? "" : "s"}. The list below closes the gap fastest from the top.`
+            : `Your day asks about ${total} spoons against a budget of ${spoons.budget}. Inside budget. Keep the shed list anyway, it’s your slack for bad weeks.`}</p>
+          {shedList.length === 0
+            ? <p className="quiet">Everything in your stack is tagged Must do. If the math says you’re over, something tagged Must do is quietly negotiable. Worth a second look, or a conversation with someone who can take a piece of it.</p>
+            : shedList.map((it, i) => (
+              <p className="shed" key={i}>
+                {it.tag === "drop" ? "Drop: " : "Shrink: "}{it.name}
+                {" "}<span className="give">gets you {it.tag === "drop" ? it.cost : Math.max(1, it.cost - 1)} spoon{(it.tag === "drop" ? it.cost : Math.max(1, it.cost - 1)) === 1 ? "" : "s"} back</span>
+                {it.dom && squeezeIds.includes(it.dom) &&
+                  <span className="feeds"> · feeds your {DOMAINS.find(d => d.id === it.dom).wheel} squeeze</span>}
+              </p>
+            ))}
+        </div>
+      )}
+
+      {allWarns.length > 0 && (
+        <div className="card">
+          <h3>My early warning signs</h3>
+          <p className="quiet" style={{marginBottom: 12}}>When these show up, take something off your plate that same week. Early, not after the crash.</p>
+          {allWarns.map((w, i) => (
+            <p className="sign" key={i}><span className="dom">{w.dom}</span>{w.list.join(". ")}.</p>
+          ))}
+        </div>
+      )}
+
+      {allSup.length > 0 && (
+        <div className="card">
+          <h3>What already helps me</h3>
+          <p className="quiet" style={{marginBottom: 12}}>These are working. Protect them before adding anything new.</p>
+          {allSup.map((s, i) => (
+            <p className="sign" key={i}><span className="dom">{s.dom}</span>{s.list.join(". ")}.</p>
+          ))}
+        </div>
+      )}
+
+      <div className="card">
+        <h3>My takeaway</h3>
+        {squeezed.length > 0 && <p className="sign"><span className="dom">Biggest squeeze</span>{squeezed[0].d.label}.</p>}
+        {chosen.length > 0
+          ? chosen.map((c, i) => <p className="sign" key={i}><span className="dom">Trying first · {c.dom}</span>{c.text}</p>)
+          : squeezed.length > 0 && <p className="sign"><span className="dom">Trying first</span>Nothing picked yet. Tap one route in each squeeze point above, one is enough.</p>}
+        {overSpoons > 0 && shedList.length > 0 &&
+          <p className="sign"><span className="dom">Dropping</span>{shedList.slice(0, 2).map(it => it.name).join(". ")}.</p>}
+        {squeezed.length > 0 && answers[squeezed[0].d.id].warns.length > 0 &&
+          <p className="sign"><span className="dom">Watching for</span>{answers[squeezed[0].d.id].warns[0]}.</p>}
+        <p className="sign"><span className="dom">Hold it</span>Run this for two weeks, even if you feel better sooner. Feeling better quickly doesn’t mean the recovery is done.</p>
+        <p className="sign"><span className="dom">Redo the map</span>Around {redoDate}.</p>
+      </div>
+
+      <hr className="soft" />
+      <p className="quiet">This page is shareable. A parent, partner, teacher, manager, or coach can read it and know how to work with you, instead of guessing.</p>
+
+      <div className="navrow no-print">
+        <button className="go" onClick={() => window.print()}>Save or print my manual</button>
+        <button className="go ghost" onClick={() => { setScreen("spoons"); window.scrollTo(0, 0); }}>Back to the spoon audit</button>
+        <button className="go ghost" onClick={() => { setIdx(0); setScreen("domain"); window.scrollTo(0, 0); }}>Back to my answers</button>
+        <button className="skip" onClick={() => {
+          if (window.confirm("Erase all answers and start fresh?")) {
+            localStorage.removeItem(KEY); setSt(blankState()); setSel(null); setScreen("start");
+          }
+        }}>Erase everything and start over</button>
+      </div>
+
+      <div className="foot">
+        <p className="tiny">Education and self-knowledge, not diagnosis, therapy, or medical care. The demand-and-capacity idea is grounded in Raymaker et al. (2021) on autistic burnout and the practitioner’s own coaching curriculum. Most formal research so far is on autistic burnout; ADHDers describe the same shape. Spoon theory comes from Christine Miserandino (2003). The wheel and the spoon math are reflection tools, not measurements. Everything you answered stays on this device.</p>
+      </div>
+    </div>
+  );
+}
+
+function CustomAdd({ onAdd }) {
+  const [t, setT] = useState("");
+  const go = () => { const v = t.trim(); if (v) { onAdd(v); setT(""); } };
+  return (
+    <div className="addrow no-print">
+      <input type="text" value={t} placeholder="Add your own (optional)"
+        aria-label="Add your own demand"
+        onChange={e => setT(e.target.value)}
+        onKeyDown={e => { if (e.key === "Enter") go(); }} />
+      <button className="go small ghost" onClick={go}>Add</button>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Burnout Mode</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --cream: #F1EFE8;
+    --ink: #26241F;
+    --pine: #2F5D50;
+    --clay: #B0603C;
+    --muted: #6B675C;
+    --faint: #8A8578;
+    --line: #CBC7BA;
+    --card: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 22px 80px; }
+  .eyebrow {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .step-count {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 12px;
+    color: var(--faint);
+    margin-bottom: 28px;
+  }
+  h1 { font-size: 30px; font-weight: normal; line-height: 1.25; margin: 14px 0 10px; }
+  h2 { font-size: 23px; font-weight: normal; line-height: 1.3; margin: 0 0 8px; }
+  .lede { font-size: 16.5px; line-height: 1.6; color: var(--ink); margin: 0 0 6px; }
+  .quiet { font-size: 14px; line-height: 1.6; color: var(--muted); }
+  .tiny { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; line-height: 1.6; color: var(--faint); }
+
+  .stmt {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 14px 4px;
+    font-size: 19px;
+    line-height: 1.45;
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
+    position: relative;
+    min-height: 52px;
+  }
+  .stmt span {
+    background-image: linear-gradient(var(--pine), var(--pine));
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 0% 2px;
+    transition: background-size 0.35s ease;
+    padding-bottom: 3px;
+  }
+  .stmt.on span { background-size: 100% 2px; }
+  .stmt.on { color: var(--pine); }
+  .stmt:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; }
+
+  .chip {
+    border: 1.5px solid var(--line);
+    background: transparent;
+    border-radius: 999px;
+    padding: 12px 18px;
+    font-size: 15.5px;
+    color: var(--ink);
+    margin: 0 8px 10px 0;
+    min-height: 48px;
+    line-height: 1.3;
+  }
+  .chip.on { border-color: var(--pine); background: var(--pine); color: #fff; }
+  .chip:disabled { opacity: 0.45; cursor: default; }
+  .chip:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; }
+  .chip-sub {
+    display: block;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 11.5px;
+    color: inherit;
+    opacity: 0.75;
+    margin-top: 2px;
+  }
+
+  .go {
+    background: var(--pine);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 15px 26px;
+    font-size: 16px;
+    margin-top: 26px;
+    min-height: 52px;
+  }
+  .go:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .go.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .skip {
+    border: none;
+    background: none;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 12.5px;
+    color: var(--faint);
+    text-decoration: underline;
+    padding: 8px 0;
+    margin-left: 18px;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 0 0 14px;
+  }
+  .card h3 {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  .move { font-size: 16px; line-height: 1.55; margin: 0 0 14px; }
+  .move:last-child { margin-bottom: 0; }
+  .move .dom {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--clay);
+    display: block;
+    margin-bottom: 3px;
+  }
+  .script {
+    border-left: 3px solid var(--pine);
+    padding: 4px 0 4px 14px;
+    font-size: 16px;
+    line-height: 1.5;
+    font-style: italic;
+    margin: 0 0 12px;
+  }
+  .name-it {
+    border-left: 3px solid var(--clay);
+    padding: 4px 0 4px 16px;
+    margin: 22px 0;
+  }
+  .name-it p { font-size: 17px; line-height: 1.6; margin: 0 0 8px; }
+  .name-it p:last-child { margin-bottom: 0; }
+  .foot {
+    border-top: 1px solid var(--line);
+    margin-top: 34px;
+    padding-top: 16px;
+  }
+  hr.soft { border: none; border-top: 1px solid var(--line); margin: 26px 0; }
+
+  .task { display: flex; gap: 12px; margin: 0 0 18px; }
+  .chk { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line);
+    background: #fff; flex: none; color: transparent; font-size: 15px; margin-top: 2px; }
+  .chk.on { background: var(--pine); border-color: var(--pine); color: #fff; }
+  .task-t { font-size: 16.5px; margin: 0 0 5px; line-height: 1.4; }
+  .task-s { font-size: 14px; color: var(--muted); margin: 0 0 5px; line-height: 1.55; }
+  details.edu { background: var(--card); border-radius: 6px; padding: 14px 20px; margin: 18px 0; }
+  details.edu summary { cursor: pointer; font-size: 16px; color: var(--pine); }
+  details.edu summary:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; }
+  details.edu p { font-size: 15px; line-height: 1.65; }
+  details.edu .mini { font-family: system-ui, -apple-system, sans-serif; font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 16px 0 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    .stmt span { transition: none; }
+  }
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff; }
+    .card { border: 1px solid #ddd; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/* ---------- content, sourced ----------
+   Recognition markers: Raymaker et al. (2021) autistic burnout definition
+   (chronic exhaustion, loss of skills, reduced tolerance to stimulus) and
+   Module 5 indicator checklist (loss of verbal fluency, transition difficulty,
+   return of previously masked stims).
+   Moves: Module 3 (energy budget, decompression periods, goals adjusted to
+   current energy), Module 4 (pre-planned recovery, buy-time and decline
+   scripts, async communication), Module 5 (recovery rituals),
+   Module 6 (environmental prototype testing).
+---------------------------------------- */
+
+const STATEMENTS = [
+  { id: "rest",   text: "Rest isn’t restoring me." },
+  { id: "skills", text: "Things I could handle six months ago feel impossible now." },
+  { id: "sense",  text: "Sounds, lights, or textures I used to tolerate feel like too much." },
+  { id: "words",  text: "Words are harder to find. Talking costs more than it used to." },
+  { id: "switch", text: "Switching between tasks takes more than I have." },
+  { id: "stims",  text: "Stims I used to hide are showing up again." },
+  { id: "pull",   text: "I’ve pulled back from things I care about." },
+];
+
+const CAUSES = [
+  { id: "mask", label: "Masking most of the day, most days",
+    line: "Masking is a job on top of your actual day. Unmasking one safe space is the first cost you cut." },
+  { id: "push", label: "Pushing through when the tank was already empty",
+    line: "Pushing through got you here. The new skill is stopping before empty." },
+  { id: "extend", label: "Running past my limits for weeks or months",
+    line: "Months past your limits built up a debt, and it pays back slowly. A weekend won’t cover it." },
+  { id: "yes", label: "Saying yes to things I didn’t have room for",
+    line: "Every yes spent energy you didn’t have. The plan below is where you start taking some back." },
+  { id: "env", label: "Living or working somewhere that doesn’t fit how I work",
+    line: "When the place doesn’t fit, trying harder won’t fix it. Change what you can about the place first." },
+  { id: "dismissed", label: "My needs kept getting dismissed, by others or by me",
+    line: "Needs that get brushed aside don’t go away. They pile up. The plan below takes yours seriously." },
+];
+
+const DOMAINS = [
+  { id: "sensory", label: "Sensory load", sub: "noise, light, texture, crowded input",
+    move: { t: "Cut one layer of input",
+      steps: ["Pick the loudest layer in your day: notification sounds, overhead lights, background TV.",
+        "Turn it off or swap it for the whole week. Headphones during chores count.",
+        "Check on Friday: are you less on edge by evening?"] },
+    move2: { t: "Take a quiet break after loud stretches",
+      steps: ["After anything loud or busy, take ten minutes somewhere dim and quiet, nothing coming in.",
+        "Put it in your day like an appointment. Don’t wait to earn it."] },
+    experiment: "Change one thing about the room you spend the most hours in. Dimmer light, a cleared surface, blackout curtains. Run it for the week and track one thing only: do you flinch less.",
+    recovery: "Low light, low sound, horizontal. Sensory rest is the version your system is actually asking for." },
+  { id: "exec", label: "Starting and switching tasks", sub: "getting going, changing gears",
+    move: { t: "Drop your hardest task this week",
+      steps: ["Find the task you keep avoiding.",
+        "Delete it, hand it off, or move it whole to next month. Don’t shrink it, remove it.",
+        "Notice how starting other things feels once it’s gone."] },
+    move2: { t: "Shrink the list to match the tank",
+      steps: ["Write your normal to-do list.",
+        "Cross out half. This week runs on this week’s energy, not a normal week’s."] },
+    experiment: "No task switching without a buffer. Five minutes of nothing between blocks, all week. Track whether endings get easier.",
+    recovery: "One evening where nothing gets finished on purpose. Rest with zero output attached." },
+  { id: "masking", label: "Masking", sub: "acting okay when you’re not",
+    move: { t: "Stop performing in one place",
+      steps: ["Pick your safest space: home, one friend, one group chat.",
+        "Let the act drop there. Flat voice fine, no forced smiling, stims allowed.",
+        "Watch your evenings this week and see how much energy comes back."] },
+    move2: { t: "Cancel one performance",
+      steps: ["Find the thing you’d attend as a character. The optional meeting. The event you’re dreading.",
+        "Cancel it or send your regrets. The words in Step 3 are there if you need them."] },
+    experiment: "Unmask in your safest context for the week and watch your evenings. Masking drains energy where nobody can see it. See what comes back when you stop paying it in one place.",
+    recovery: "Time with someone, or no one, where you don’t have to explain yourself." },
+  { id: "intero", label: "Reading my own body", sub: "hunger, thirst, tiredness arriving late",
+    move: { t: "Put the basics on a schedule",
+      steps: ["Same easy meals all week. Water where you can see it.",
+        "Set alarms for eating and drinking. Let the alarm do the noticing your body doesn’t."] },
+    move2: { t: "Cut the daily decisions",
+      steps: ["Repeat meals, repeat outfits, repeat routes this week.",
+        "Every decision you delete leaves a little more in the tank."] },
+    experiment: "One fixed anchor per day, same meal at the same time, for the week. Track whether the afternoon crash softens.",
+    recovery: "Weight, warmth, pressure. A heavy blanket or a hot shower. Recovery your body can feel without you having to figure it out." },
+  { id: "social", label: "People and social energy", sub: "meetings, gatherings, being on",
+    move: { t: "Say no to one thing",
+      steps: ["Look at your week. Pick the commitment that costs the most and gives back the least.",
+        "Decline it or push it back, using the words in Step 3 if you need them.",
+        "Leave the space it opens empty. Don’t refill it."] },
+    move2: { t: "Guard the hour after people time",
+      steps: ["After any social thing you can’t skip, block the next hour.",
+        "Nothing goes in it. That hour is the recharge."] },
+    experiment: "Cap it at one social context per day for the week. Track whether words come back by evening.",
+    recovery: "Company without talking. Someone in the room, no conversation needed." },
+  { id: "comms", label: "Communication", sub: "finding words, being understood",
+    move: { t: "Move one call to text",
+      steps: ["Pick the regular call you dread most.",
+        "Ask to switch it to text or email this week, so you can answer when you’re ready."] },
+    move2: { t: "Save your common replies",
+      steps: ["Write out the three messages you send most often.",
+        "Save them in your notes app. Copy, paste, adjust, send."] },
+    experiment: "For one week, don’t answer anything on the spot unless it truly needs it. Track whether the dread shrinks.",
+    recovery: "An hour, or a day, where nobody needs an answer from you." },
+  { id: "reg", label: "Staying regulated", sub: "emotions running hot, or gone flat",
+    move: { t: "Skip one trigger instead of surviving it",
+      steps: ["Name one situation that reliably sets you off. The crowded store at five. The group chat that winds you up.",
+        "Skip it or swap it this week. Shop at a quiet hour. Mute the chat."] },
+    move2: { t: "Go to bed earlier than feels productive",
+      steps: ["Pick a bedtime 30 to 60 minutes earlier than usual.",
+        "Keep it all week. Staying steady runs on sleep."] },
+    experiment: "One calming routine at the same time every day. A walk, music, pressure. Boring on purpose. Track how steady you feel, not how happy.",
+    recovery: "Whatever reliably brings you down a notch, scheduled before you need it, not after." },
+  { id: "trans", label: "Transitions and uncertainty", sub: "plans changing, not knowing what’s next",
+    move: { t: "Freeze the plan",
+      steps: ["No new commitments this week. If someone asks, use the buy-time words in Step 3.",
+        "Let the week stay boring and predictable. That’s the win right now."] },
+    move2: { t: "Write tomorrow down tonight",
+      steps: ["Before bed, jot tomorrow’s rough shape. Three lines is plenty.",
+        "Mornings cost less when they’re not a surprise."] },
+    experiment: "Tomorrow written down the night before, even roughly, for one week. Track whether mornings cost less.",
+    recovery: "Repetition. The same show, the same meal, the same route. Predictability is rest." },
+];
+
+function Frame({ step, children }) {
+  return (
+    <div className="wrap">
+      <div className="eyebrow">Burnout Mode</div>
+      {step && <div className="step-count">{step}</div>}
+      {children}
+    </div>
+  );
+}
+
+function App() {
+  const [screen, setScreen] = useState("start");
+  const [marks, setMarks] = useState([]);
+  const [doms, setDoms] = useState([]);
+  const [causes, setCauses] = useState([]);
+  const toggleCause = (id) =>
+    setCauses(c => c.includes(id) ? c.filter(x => x !== id) : [...c, id]);
+  const [checked, setChecked] = useState([]);
+  const toggleCheck = (k) =>
+    setChecked(c => c.includes(k) ? c.filter(x => x !== k) : [...c, k]);
+
+  const toggleMark = (id) =>
+    setMarks(m => m.includes(id) ? m.filter(x => x !== id) : [...m, id]);
+  const toggleDom = (id) =>
+    setDoms(d => d.includes(id) ? d.filter(x => x !== id)
+      : d.length >= 3 ? d : [...d, id]);
+
+  if (screen === "start") return (
+    <Frame>
+      <h1 style={{fontSize: 38, marginBottom: 4}}>Burnout Mode</h1>
+      <p className="lede" style={{fontSize: 19, marginBottom: 14}}>Running on empty? This is for you.</p>
+      <p className="lede">A five-minute check for neurodivergent folks whose tank has hit the floor. It shows you whether what you’re feeling matches neurodivergent burnout, what’s been feeding it, and it ends with a plan to lighten your load. No typing. You just tap what’s true.</p>
+      <p className="quiet">Everything stays on this device. Nothing is sent anywhere.</p>
+      <p className="quiet">This is education and self-knowledge, not diagnosis, therapy, or medical care.</p>
+      <details className="edu">
+        <summary>What is neurodivergent burnout? A two-minute read.</summary>
+        <p className="mini">What it is</p>
+        <p>A deep tiredness that rest doesn’t lift. Skills you’ve always had suddenly feel harder. Less room than you used to have for noise, light, and people. It happens when life keeps asking more of you than you’ve got, for too long, without enough help. Researchers have studied this in autistic people (Raymaker et al., 2021), and ADHDers describe the same shape.</p>
+        <p className="mini">How it’s different from regular burnout</p>
+        <p>Regular burnout usually comes from one part of life. Work, caregiving, school, a hard season. It shows up as exhaustion and dread about that one thing, and it usually eases when that thing changes or you get a real break. Neurodivergent burnout is life-shaped. It comes from the total cost of living in places not built for how your brain works, and masking is one of its biggest causes. It brings two things regular burnout doesn’t: skills you had get harder, and your tolerance for noise, light, and people shrinks. It can hit students, kids, and people without jobs. A holiday doesn’t fix it, because the masking and the sensory load come with you.</p>
+        <p className="mini">What usually causes it</p>
+        <p>Masking for long stretches, sometimes years. Sensory overload that never gets a break: noise, lights, crowded places, day after day. Schools, jobs, and homes that weren’t set up for how your brain works. Pushing through on willpower until the crash. Needs that kept getting dismissed, by others or by you. Usually it’s several of these at once, stacked for a long time.</p>
+        <p className="mini">How do I know if this is me</p>
+        <p>The next screen shows you the signs. Tap the ones that feel true. Then ask yourself three things. Did this build up over months of pushing through? Does rest not fix it? Are things that used to be easy suddenly hard? If it’s mostly yes, you’re in the right place. This tool can spot the pattern. Only you, and maybe a clinician, can confirm it.</p>
+        <p className="mini">Burnout or depression?</p>
+        <p>They can feel the same from the inside, and plenty of people have both at once. The clearest difference is what happens to wanting. Depression tends to take the wanting away. Things you used to love stop mattering, and even easy days feel grey and pointless. Neurodivergent burnout takes the energy away, and the wanting stays. You still care about your people and your interests, you just can’t afford them right now. One more clue: when your load gets lighter, burnout starts to lift. Depression usually doesn’t. If nothing improves even when life gets easier, or you feel worthless or hopeless, talk to a doctor or therapist. Both are real, and both deserve help.</p>
+      </details>
+      <button className="go" onClick={() => setScreen("recog")}>Start</button>
+    </Frame>
+  );
+
+  if (screen === "recog") return (
+    <Frame step="1 of 4">
+      <h2>Tap any line that’s true right now.</h2>
+      <p className="quiet" style={{marginBottom: 8}}>These are the signs researchers found in autistic and ADHD burnout, so this screen is the “how do I know if this is me” check. No number of taps is right or wrong. Skip any that don’t fit.</p>
+      <p className="tiny" style={{marginBottom: 14}}>Three sorting questions while you read: Did this build over months of pushing through? Does rest not fix it? Are things you could do six months ago suddenly harder?</p>
+      <div role="group" aria-label="Recognition statements">
+        {STATEMENTS.map(s => (
+          <button key={s.id} aria-pressed={marks.includes(s.id)}
+            className={"stmt" + (marks.includes(s.id) ? " on" : "")}
+            onClick={() => toggleMark(s.id)}>
+            <span>{s.text}</span>
+          </button>
+        ))}
+      </div>
+      <div className="no-print">
+        <button className="go" onClick={() => setScreen("causes")}>Next</button>
+        <button className="skip" onClick={() => { setMarks([]); setScreen("causes"); }}>Skip this</button>
+      </div>
+    </Frame>
+  );
+
+  if (screen === "causes") return (
+    <Frame step="2 of 4">
+      <h2>Which of these have been true for months?</h2>
+      <p className="quiet" style={{marginBottom: 18}}>Tap any that fit. These are the usual causes of neurodivergent burnout, and your plan will speak to the ones you pick.</p>
+      <div role="group" aria-label="Burnout causes">
+        {CAUSES.map(c => (
+          <button key={c.id} aria-pressed={causes.includes(c.id)}
+            className={"chip" + (causes.includes(c.id) ? " on" : "")}
+            onClick={() => toggleCause(c.id)}>{c.label}</button>
+        ))}
+      </div>
+      <div className="no-print">
+        <button className="go" onClick={() => setScreen("doms")}>Next</button>
+        <button className="skip" onClick={() => { setCauses([]); setScreen("doms"); }}>Skip this</button>
+      </div>
+    </Frame>
+  );
+
+  if (screen === "doms") return (
+    <Frame step="3 of 4">
+      <h2>Where is your day demanding the most right now?</h2>
+      <p className="quiet" style={{marginBottom: 18}}>Pick up to three.</p>
+      <div role="group" aria-label="Demand domains">
+        {DOMAINS.map(d => (
+          <button key={d.id} aria-pressed={doms.includes(d.id)}
+            className={"chip" + (doms.includes(d.id) ? " on" : "")}
+            disabled={!doms.includes(d.id) && doms.length >= 3}
+            onClick={() => toggleDom(d.id)}>
+            {d.label}
+            <span className="chip-sub">{d.sub}</span>
+          </button>
+        ))}
+      </div>
+      <div className="no-print">
+        <button className="go" onClick={() => setScreen("plan")}>
+          {doms.length ? "Build my plan" : "Skip, show me a general plan"}
+        </button>
+      </div>
+    </Frame>
+  );
+
+  /* ----- plan ----- */
+  const picked = doms.length ? doms.map(id => DOMAINS.find(d => d.id === id))
+                             : [DOMAINS[0], DOMAINS[1]]; // general default: sensory + tasks
+  const moves = picked.map(d => ({ dom: d.label, ...d.move }));
+  if (moves.length < 3) moves.push({ dom: picked[0].label, ...picked[0].move2 });
+  const heavy = marks.length >= 3;
+  const some = marks.length > 0 && marks.length < 3;
+  const overlap = marks.includes("pull") || marks.length >= 5;
+
+  return (
+    <Frame step="4 of 4">
+      <h2>Your lighten-the-load plan</h2>
+      <p className="quiet" style={{marginBottom: 16}}>This is a plan for the next two weeks, not a list of ideas. Work top to bottom. Tap a circle when a step is done.</p>
+
+      {heavy && (
+        <div className="name-it">
+          <p>What you just marked has a name. Researchers call it autistic or ADHD burnout: deep tiredness that doesn’t lift, skills that suddenly feel harder, and less room for noise and light than you used to have. It happens when life asks more of you than you’ve got, for too long, without enough help.</p>
+          <p>Rest that doesn’t fix it is the sign that this is more than ordinary tiredness. It’s a real, studied pattern, not a character flaw.</p>
+        </div>
+      )}
+      {some && (
+        <div className="name-it">
+          <p>Some of the pattern is present. That’s worth taking seriously while it’s still early. The plan below works the same way at any stage: it takes demands out.</p>
+        </div>
+      )}
+
+      {causes.length > 0 && (
+        <div className="card">
+          <h3>What’s been feeding it</h3>
+          {CAUSES.filter(c => causes.includes(c.id)).map((c, i) => (
+            <p className="move" key={i}><span className="dom">{c.label}</span>{c.line}</p>
+          ))}
+        </div>
+      )}
+
+      <div className="card">
+        <h3>Step 1 · Take these off your plate</h3>
+        {moves.map((m, i) => (
+          <div className="task" key={i}>
+            <button className={"chk" + (checked.includes("m" + i) ? " on" : "")}
+              aria-pressed={checked.includes("m" + i)}
+              aria-label={"Mark done: " + m.t}
+              onClick={() => toggleCheck("m" + i)}>✓</button>
+            <div>
+              <span className="dom" style={{fontFamily: "system-ui, sans-serif", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--clay)", display: "block", marginBottom: 3}}>{m.dom}</span>
+              <p className="task-t">{m.t}</p>
+              {m.steps.map((st, j) => <p className="task-s" key={j}>{st}</p>)}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <h3>Step 2 · Run one experiment for one week</h3>
+        <p className="move">{picked[0].experiment}</p>
+        <p className="tiny">One change at a time, then see how it lands. If it helps, keep it. If it doesn’t, swap it. The method matters more than the pick.</p>
+      </div>
+
+      <div className="card">
+        <h3>Step 3 · Words that buy you room</h3>
+        <p className="script">“That sounds interesting. Let me check my schedule and get back to you within an hour.”</p>
+        <p className="script">“I don’t have room for this right now, so I’ll have to pass.”</p>
+        <p className="tiny">The first buys time so you’re not deciding on the spot. The second says no without a long apology.</p>
+      </div>
+
+      <div className="card">
+        <h3>Step 4 · Rest that actually refuels you</h3>
+        {picked.map((d, i) => (
+          <p className="move" key={i}>{d.recovery}</p>
+        ))}
+        <p className="tiny">Scrolling and background TV can look like rest while still draining you. If an hour of it leaves you no better, it wasn’t really rest.</p>
+      </div>
+
+      <div className="card">
+        <h3>Step 5 · Pace the comeback</h3>
+        <p className="move">Getting out takes time. People who’ve been through this describe months of recovery, not weekends. That’s normal for this kind of burnout, not a sign you’re doing it wrong.</p>
+        <p className="move">The trap: energy comes back before durability does. The first week you feel better is thin ice. Sprinting back to full speed on it is how people cycle in and out of burnout for years.</p>
+        <p className="move">So the order is: take things off first. Hold the lighter load for weeks, even when you feel fine. Then add things back one at a time, and keep the things you dropped, dropped.</p>
+      </div>
+
+      {overlap && (
+        <p className="quiet">One more thing. Burnout and depression can look alike from the inside, and they often show up together. If the flatness or loss of interest hangs around even after your load comes down, a therapist or doctor is the right next step, and going counts as lightening the load.</p>
+      )}
+
+      <div className="card">
+        <h3>Start here</h3>
+        <p className="move"><span className="dom">{moves[0].dom}</span>{moves[0].t}. {moves[0].steps[0]}</p>
+        <p className="tiny">One move. Hold it for two weeks, even if you feel better sooner. Feeling better quickly doesn’t mean the recovery is done.</p>
+      </div>
+
+      <hr className="soft" />
+      <p className="quiet">When you have more in the tank, the Difference Map goes deeper: eight areas of your life, where the squeeze is in each one, and a personal operating manual at the end. No rush. <a href="/difference-map" style={{color: "var(--pine)"}}>Open the Difference Map</a>.</p>
+
+      <div className="no-print">
+        <button className="go" onClick={() => window.print()}>Save or print this plan</button>
+        <button className="go ghost" style={{marginLeft: 10}} onClick={() => { setMarks([]); setDoms([]); setScreen("start"); }}>Start over</button>
+      </div>
+
+      <div className="foot">
+        <p className="tiny">Education and self-knowledge, not diagnosis, therapy, or medical care. Grounded in Raymaker et al. (2021) on autistic burnout and the practitioner’s own coaching curriculum. Everything you tapped stays on this device.</p>
+      </div>
+    </Frame>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

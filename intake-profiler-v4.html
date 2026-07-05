@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Getting to Know You</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  body { margin: 0; background: #F1EFE8; color: #26241F; font-family: Georgia, 'Times New Roman', serif; }
+  input, textarea, select, button { font-family: inherit; }
+  textarea { width: 100%; box-sizing: border-box; border: 1px solid #CBC7BA; background: #FFFFFF; padding: 10px; font-size: 14px; line-height: 1.5; border-radius: 4px; resize: vertical; }
+  .chip { border: 1.5px solid #CBC7BA; background: transparent; border-radius: 999px; padding: 8px 14px; font-size: 13.5px; cursor: pointer; color: #4C483F; }
+  .chip.on { border-color: #2F5D50; background: #2F5D50; color: #FFFFFF; }
+  .skip { border: none; background: none; font-size: 12px; color: #8A8578; cursor: pointer; text-decoration: underline; padding: 0; font-family: system-ui, sans-serif; }
+  .ask { font-size: 12px; font-family: system-ui, sans-serif; color: #2F5D50; font-weight: 700; letter-spacing: 0.04em; }
+  .sect-label { letter-spacing: 0.18em; font-size: 11px; text-transform: uppercase; font-family: system-ui, sans-serif; color: #6B675C; }
+  .card { background: #FFFFFF; padding: 20px 24px; border-radius: 6px; margin-bottom: 16px; }
+  .btn { border: none; background: #2F5D50; color: #fff; padding: 12px 26px; font-size: 15px; cursor: pointer; border-radius: 4px; }
+  .btn.ghost { background: transparent; color: #2F5D50; border: 1.5px solid #2F5D50; }
+  .anchors { display: flex; justify-content: space-between; font-size: 11px; font-family: system-ui, sans-serif; color: #8A8578; margin-top: 2px; }
+  .saved { font-size: 11.5px; font-family: system-ui, sans-serif; color: #8A8578; }
+  .skipbox { border: 1.5px dashed #CBC7BA; border-radius: 4px; padding: 10px 14px; cursor: pointer; margin-top: 8px; }
+  .skipbox p { margin: 0; font-size: 13px; color: #8A8578; font-family: system-ui, sans-serif; }
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff; }
+    .card { border: 1px solid #ddd; page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+/* ============ content ============ */
+
+const SENSORY_DOMAINS = [
+  { key: "visual", label: "What you see", tech: "visual", example: "bright lights, screens, cluttered rooms, flickering" },
+  { key: "auditory", label: "What you hear", tech: "auditory", example: "background noise, several people talking, sudden sounds, alarms" },
+  { key: "tactile", label: "Touch and texture", tech: "tactile", example: "scratchy fabrics, clothing tags, someone touching you unexpectedly" },
+  { key: "smell_taste", label: "Smell and taste", tech: "olfactory / gustatory", example: "strong perfumes or food smells, food textures and flavors" },
+  { key: "vestibular", label: "Movement", tech: "vestibular", example: "swinging, spinning, rocking, car or bus rides" },
+  { key: "proprioceptive", label: "Body pressure and effort", tech: "proprioceptive", example: "tight hugs, weighted blankets, firm pressure like a heavy backpack or a massage" },
+  { key: "interoception", label: "Signals from inside your body", tech: "interoception", example: "noticing you're hungry, thirsty, or tired, and catching feelings like frustration while they're still small instead of after they've taken over" },
+];
+
+const SENSE_OPTIONS = ["bothers or drains me", "doesn't affect me much", "helps me feel calm or focused", "not sure"];
+
+const EF_DOMAINS = [
+  { key: "planning", label: "Planning and deciding what comes first", desc: "figuring out the steps to get something done, choosing what matters most" },
+  { key: "time", label: "Keeping track of time", desc: "guessing how long things take, noticing time passing, being on time" },
+  { key: "memory", label: "Holding things in your head", desc: "remembering multi-step instructions, keeping track of a few things at once" },
+  { key: "flexibility", label: "Handling sudden changes", desc: "plans changing last minute, switching between tasks or ideas" },
+  { key: "initiation", label: "Getting started and finishing", desc: "starting when you're stuck, following through to the end" },
+];
+
+const COMM_MODES = ["Live conversation", "Written / chat", "Voice notes", "Shared doc", "Pictures or visuals"];
+const SESSION_STYLE = ["Quiet while I think", "Light conversation", "Keep gently prompting me"];
+const STRENGTH_CATS = [
+  { key: "Thinking", hint: "spotting patterns, deep focus, remembering details, solving puzzles" },
+  { key: "Creative", hint: "making things, ideas nobody else has, art, music, building, design" },
+  { key: "Emotional", hint: "sensing how others feel, caring deeply, honesty, sense of justice" },
+  { key: "Relational", hint: "loyalty, listening, showing up for people, one-on-one connection" },
+  { key: "Things I taught myself", hint: "skills from hobbies, games, caregiving, advocacy, real life" },
+];
+
+const BOOKING = ["Same time every week", "I book when I'm ready", "A mix of both", "Not sure yet"];
+const BEST_TIME = ["Morning", "Midday", "Afternoon", "Evening", "It changes a lot"];
+const LOW_ENERGY = ["Reschedule it", "Shorter session", "Camera off", "Switch to chat or voice notes", "Not sure"];
+const RESCHED_STYLE = ["Grab a new time right away", "Wait until I'm ready"];
+const REMINDERS = ["Yes, day before and 1 hour before", "Yes, just 1 hour before", "No reminders"];
+const NUDGE = ["Yes, after 2–3 weeks", "Yes, after a month", "No, I'll come back on my own"];
+
+const STORAGE_KEY = "intake-profiler-v3";
+
+const initState = () => ({
+  name: "", pronouns: "", identifies: "",
+  goal: "", hardest: "", supportLooksLike: "", environments: "",
+  commModes: [], topicsAdvance: null, visualSummary: null, sessionStyle: null, breakSignal: "",
+  sensory: Object.fromEntries(SENSORY_DOMAINS.map(d => [d.key, { response: null, note: "" }])),
+  ef: Object.fromEntries(EF_DOMAINS.map(d => [d.key, { cost: null, worksWhen: "" }])),
+  maskingCost: null, maskingWhere: "", socialCost: null,
+  recharge: "", regulationHelps: "", warningSigns: "",
+  booking: null, bestTime: null, lowEnergy: null, rescheduleStyle: null, reminders: null, nudge: null,
+  strengths: Object.fromEntries(STRENGTH_CATS.map(c => [c.key, ""])),
+  joyAnchors: "",
+  skippedQs: {},
+});
+
+/* ============ wheel ============ */
+const CX = 230, CY = 210, R = 130;
+const WHEEL = [
+  { key: "sensory", label: ["Sensory"], desc: "how much everyday sights, sounds, and textures cost you" },
+  { key: "planning", label: ["Planning"], desc: "organizing steps and deciding what comes first" },
+  { key: "time", label: ["Time"], desc: "tracking time and estimating how long things take" },
+  { key: "memory", label: ["Memory"], desc: "holding several things in your head at once" },
+  { key: "flexibility", label: ["Flexibility"], desc: "handling sudden changes and switching tasks" },
+  { key: "masking", label: ["Masking"], desc: "how much of your day is spent performing a version of yourself" },
+  { key: "social", label: ["Social", "Energy"], desc: "what time with people costs you" },
+];
+const ang = i => (Math.PI * 2 * i) / WHEEL.length - Math.PI / 2;
+const pt = (i, v) => [CX + (v / 10) * R * Math.cos(ang(i)), CY + (v / 10) * R * Math.sin(ang(i))];
+
+function Wheel({ values }) {
+  return (
+    <svg viewBox="0 0 460 440" width="460" style={{ maxWidth: "100%" }}>
+      {[2,4,6,8,10].map(r => (
+        <polygon key={r} points={WHEEL.map((d,i) => pt(i,r).join(",")).join(" ")} fill="none" stroke="#D8D4C8" strokeWidth="1" />
+      ))}
+      {WHEEL.map((d,i) => { const [x,y]=pt(i,10); return <line key={d.key} x1={CX} y1={CY} x2={x} y2={y} stroke="#D8D4C8" strokeWidth="1" />; })}
+
+      {/* scale markers on the top spoke */}
+      <text x={CX + 6} y={CY + 4} fontSize="10" fontFamily="system-ui, sans-serif" fill="#A9A497">0</text>
+      <text x={pt(0,5)[0] + 6} y={pt(0,5)[1] + 4} fontSize="10" fontFamily="system-ui, sans-serif" fill="#A9A497">5</text>
+      <text x={pt(0,10)[0] + 6} y={pt(0,10)[1] + 12} fontSize="10" fontFamily="system-ui, sans-serif" fill="#A9A497">10</text>
+
+      <polygon points={WHEEL.map((d,i) => pt(i, values[d.key]).join(",")).join(" ")} fill="rgba(47,93,80,0.18)" stroke="#2F5D50" strokeWidth="2" />
+      {WHEEL.map((d,i) => { const [x,y]=pt(i, values[d.key]); return <circle key={d.key} cx={x} cy={y} r="4" fill="#2F5D50" />; })}
+
+      {/* value at each point: outside the dot normally, inside the polygon when 9+ to avoid label collisions */}
+      {WHEEL.map((d,i) => {
+        const v = values[d.key];
+        const rOut = v >= 9 ? (v / 10) * R - 16 : (v / 10) * R + 15;
+        const x = CX + rOut * Math.cos(ang(i)), y = CY + rOut * Math.sin(ang(i));
+        return <text key={d.key} x={x} y={y + 4} textAnchor="middle" fontSize="11" fontWeight="700"
+          fontFamily="system-ui, sans-serif" fill="#2F5D50">{v}</text>;
+      })}
+
+      {/* axis labels, two-line capable */}
+      {WHEEL.map((d,i) => {
+        const [x,y]=pt(i,12.4);
+        const anchor = Math.abs(x-CX)<12?"middle":x>CX?"start":"end";
+        return (
+          <text key={d.key} x={x} y={y} textAnchor={anchor}
+            fontSize="12" fontFamily="system-ui, sans-serif" fill="#4C483F" fontWeight="700">
+            {d.label.map((line, j) => (
+              <tspan key={j} x={x} dy={j === 0 ? 0 : 13}>{line}</tspan>
+            ))}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
+
+/* ============ coach brief derivation ============ */
+function deriveProfile(s) {
+  const drains = k => s.sensory[k].response === SENSE_OPTIONS[0];
+  const helps = k => s.sensory[k].response === SENSE_OPTIONS[2];
+  const drainCount = SENSORY_DOMAINS.filter(d => drains(d.key)).length;
+  const sensoryScore = Math.min(10, Math.round((drainCount / SENSORY_DOMAINS.length) * 10) + (drainCount > 0 ? 2 : 0));
+  const efScore = k => s.ef[k].cost == null ? 5 : s.ef[k].cost;
+
+  const wheelValues = {
+    sensory: sensoryScore, planning: efScore("planning"), time: efScore("time"),
+    memory: efScore("memory"), flexibility: efScore("flexibility"),
+    masking: s.maskingCost == null ? 5 : s.maskingCost,
+    social: s.socialCost == null ? 5 : s.socialCost,
+  };
+
+  const a = [];
+  if (s.topicsAdvance === "yes") a.push("Your coach will send you the topics and a simple agenda before every session.");
+  if (s.topicsAdvance === "sometimes") a.push("When you book, your coach will ask whether you want an agenda for that session or an open one.");
+  if (s.visualSummary === "yes") a.push("You'll get a short written or visual summary after each session.");
+  if (s.commModes.length && !s.commModes.includes("Live conversation")) a.push(`Between sessions, contact happens only through: ${s.commModes.join(", ").toLowerCase()}. No unscheduled calls.`);
+  else if (s.commModes.length) a.push(`Between sessions, your coach will reach you through: ${s.commModes.join(", ").toLowerCase()}.`);
+  if (s.sessionStyle === "Quiet while I think") a.push("You'll get quiet time to think after questions. Nobody fills your pauses.");
+  if (s.sessionStyle === "Keep gently prompting me") a.push("Your coach will keep gentle prompts coming rather than leaving long silences.");
+  if (s.breakSignal) a.push(`Your break signal: "${s.breakSignal}". Your coach will respect it right away, without turning it into a conversation.`);
+  else a.push("You haven't named a break signal yet. You and your coach will create one together in the first session. A hand signal or standing up counts.");
+  const avoids = SENSORY_DOMAINS.filter(d => drains(d.key)).map(d => d.label.toLowerCase());
+  if (avoids.length) a.push(`Session spaces will be set up with less of what drains you: ${avoids.join("; ")}.`);
+  const seeks = SENSORY_DOMAINS.filter(d => helps(d.key)).map(d => d.label.toLowerCase());
+  if (seeks.length) a.push(`${seeks.join("; ")} helps you feel steady, so movement, stimming, and fidget tools are welcome in every session. Your coach will say that out loud, not just think it.`);
+  if (drainCount >= 3) a.push("Several sense channels drain you, so sessions will include a short breather every 20 to 25 minutes.");
+  if (drains("interoception") || s.sensory.interoception.response === "not sure") a.push("Body signals can be hard to read, so 'how are you feeling' isn't a fair check-in question. You'll use a color scale or traffic light instead.");
+  const highEF = EF_DOMAINS.filter(d => (s.ef[d.key].cost ?? 0) >= 7);
+  highEF.forEach(d => {
+    const w = s.ef[d.key].worksWhen;
+    a.push(`${d.label} costs you a lot (${s.ef[d.key].cost}/10). Coaching will build outside supports around it instead of asking for more willpower.${w ? ` Your own words point the way: it goes well when ${w}.` : ""}`);
+  });
+  if (EF_DOMAINS.every(d => (s.ef[d.key].cost ?? 5) <= 3)) a.push("You didn't flag any getting-things-done areas as costly, so your coach won't pile on planners and systems you don't need.");
+  if ((s.maskingCost ?? 0) >= 7) {
+    a.push("You spend a lot of your day performing. In sessions you don't have to. Stimming, silence, looking away, all fine, and your coach will say so in session one.");
+    a.push("Together you'll keep an eye on early burnout signs, like easy things getting hard or rest that stops helping.");
+  }
+  if ((s.socialCost ?? 0) >= 7) a.push("Time with people costs you real energy, so sessions will be scheduled with recovery room around them.");
+  if (s.warningSigns) a.push(`Your early-warning signs, in your words: "${s.warningSigns}". You and your coach will check in on these together regularly.`);
+  if (/shut\s?down|blank|freeze|frozen|go quiet|numb/i.test(s.warningSigns)) a.push("Some of your warning signs sound like shutting down. You'll build a simple plan together for those moments, and going quiet in a session will never be read as not trying.");
+  if (s.booking === "Same time every week") a.push("Your slot stays the same every week, protected. Any change comes with plenty of notice.");
+  if (s.booking === "I book when I'm ready") a.push("You book when you're ready. At the end of each session your coach will offer to grab the next slot while you're there. Always an offer, never a push.");
+  if (s.booking === "A mix of both") a.push("You'll start with a loose weekly slot plus free rescheduling, and revisit how that feels after a month.");
+  if (s.bestTime && s.bestTime !== "It changes a lot") a.push(`Sessions will land in your ${s.bestTime.toLowerCase()} window wherever possible.`);
+  if (s.bestTime === "It changes a lot") a.push("Your energy timing shifts, so your coach will ask what works when you book instead of fixing one default hour.");
+  if ((s.maskingCost ?? 0) >= 7) a.push("Sessions won't be booked right after your heaviest masking hours, like straight after the workday.");
+  if (s.lowEnergy && s.lowEnergy !== "Not sure") a.push(`On a low-energy day: ${s.lowEnergy.toLowerCase()} instead of cancelling. Your coach will offer it before you have to ask.`);
+  if (s.lowEnergy === "Switch to chat or voice notes") a.push("You picked chat or voice notes for low-energy days. If that channel turns out to be the most comfortable one generally, it's available for regular check-ins too.");
+  if (s.lowEnergy === "Reschedule it" && s.rescheduleStyle === "Grab a new time right away") a.push("When you reschedule, new time options arrive in the same message that confirms the change, so rebooking never becomes a separate chore.");
+  if (s.lowEnergy === "Reschedule it" && s.rescheduleStyle === "Wait until I'm ready") a.push("When you reschedule, nobody pushes new times at you. The door just stays open.");
+  if (s.rescheduleStyle === "Wait until I'm ready" && s.nudge === "No, I'll come back on my own") a.push("Worth a conversation in session one: you'd rather rebook in your own time and you've said no to nudges. What should happen if a reschedule quietly stretches into months? No assumptions either way, just a plan you both agree on.");
+  if (s.reminders && s.reminders !== "No reminders") a.push(`You'll get session reminders (${s.reminders.toLowerCase()}) with the meeting link right there in the message.`);
+  if (s.nudge && s.nudge.startsWith("Yes")) a.push(`If you go quiet for ${s.nudge.replace("Yes, after ", "")}, you'll get one short friendly nudge, written so it needs no reply.`);
+  if (s.nudge === "No, I'll come back on my own") {
+    a.push("No nudges. If you go quiet, that's respected.");
+    if ((s.maskingCost ?? 0) >= 7) a.push("Worth talking about in session one: you rated masking high and chose no check-ins. What kind of contact feels safe, and what feels like pressure? No assumptions either way.");
+  }
+  if (a.length === 0) a.push("Nothing specific flagged yet. You and your coach will revisit this together after a few sessions.");
+  return { wheelValues, adaptations: a };
+}
+
+/* ============ small components ============ */
+
+function Chips({ options, value, onChange, multi }) {
+  const isOn = o => multi ? value.includes(o) : value === o;
+  const toggle = o => multi
+    ? onChange(isOn(o) ? value.filter(v => v !== o) : [...value, o])
+    : onChange(isOn(o) ? null : o);
+  return (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+      {options.map(o => (
+        <button key={o} className={"chip" + (isOn(o) ? " on" : "")} onClick={() => toggle(o)}>{o}</button>
+      ))}
+    </div>
+  );
+}
+
+function CostSlider({ value, onChange, low, mid, high }) {
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <input type="range" min="0" max="10" step="1" value={value ?? 5}
+          onChange={e => onChange(Number(e.target.value))}
+          style={{ flex: 1, accentColor: "#2F5D50" }} />
+        <span style={{ fontFamily: "system-ui, sans-serif", fontSize: 13, fontWeight: 700, color: "#2F5D50", width: 20, textAlign: "right" }}>
+          {value ?? "–"}
+        </span>
+      </div>
+      <div className="anchors"><span>0 = {low}</span><span>5 = {mid}</span><span>10 = {high}</span></div>
+    </div>
+  );
+}
+
+function Q({ label, ask, sub, children, skipped, onSkip, onUnskip }) {
+  return (
+    <div style={{ marginBottom: 24, opacity: skipped ? 0.75 : 1 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+        <p style={{ margin: 0, fontSize: 15.5, color: skipped ? "#8A8578" : "#26241F" }}>{label}</p>
+        {onSkip && !skipped && <button className="skip" onClick={onSkip}>skip this one</button>}
+      </div>
+      {skipped ? (
+        <div className="skipbox" onClick={onUnskip}>
+          <p>Skipped. Tap here to answer instead.</p>
+        </div>
+      ) : (
+        <React.Fragment>
+          {sub && <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "#6B675C", fontFamily: "system-ui, sans-serif" }}>{sub}</p>}
+          {ask && <p className="ask" style={{ margin: "6px 0 0" }}>{ask}</p>}
+          {children}
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+/* ============ app ============ */
+
+const SECTIONS = ["Welcome", "You & your goals", "Talking together", "Your senses", "Getting things done", "The performing you do", "Rest & recovery", "Booking sessions", "What you're good at", "Your profile"];
+
+function App() {
+  const [s, setS] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return { ...initState(), ...JSON.parse(saved) };
+    } catch (e) {}
+    return initState();
+  });
+  const [step, setStep] = useState(0);
+  const [savedFlash, setSavedFlash] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+      setSavedFlash(true);
+      const t = setTimeout(() => setSavedFlash(false), 1200);
+      return () => clearTimeout(t);
+    } catch (e) {}
+  }, [s]);
+
+  const u = patch => setS(prev => ({ ...prev, ...patch }));
+  const uSensory = (k, patch) => setS(prev => ({ ...prev, sensory: { ...prev.sensory, [k]: { ...prev.sensory[k], ...patch } } }));
+  const uEF = (k, patch) => setS(prev => ({ ...prev, ef: { ...prev.ef, [k]: { ...prev.ef[k], ...patch } } }));
+  const uStrength = (c, v) => setS(prev => ({ ...prev, strengths: { ...prev.strengths, [c]: v } }));
+  const skipQ = (id, clearPatch) => setS(prev => ({ ...prev, ...clearPatch, skippedQs: { ...prev.skippedQs, [id]: true } }));
+  const skipStrength = (c) => setS(prev => ({ ...prev, strengths: { ...prev.strengths, [c]: "" }, skippedQs: { ...prev.skippedQs, ["str-" + c]: true } }));
+  const unskip = id => setS(prev => ({ ...prev, skippedQs: { ...prev.skippedQs, [id]: false } }));
+  const clearAll = () => {
+    if (confirm("Erase all your answers from this device? This can't be undone.")) {
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      setS(initState()); setStep(0);
+    }
+  };
+
+  const last = SECTIONS.length - 1;
+  const profile = deriveProfile(s);
+  const writeAsk = "Write a few words. Fragments are fine.";
+  const sq = id => ({ skipped: !!s.skippedQs[id], onUnskip: () => unskip(id) });
+
+  return (
+    <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 20px 80px" }}>
+
+      <div className="no-print" style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+        {SECTIONS.map((sec, i) => (
+          <div key={sec} title={sec} onClick={() => setStep(i)} style={{
+            flex: 1, height: 4, cursor: "pointer", borderRadius: 2,
+            background: i <= step ? "#2F5D50" : "#D8D4C8",
+          }} />
+        ))}
+      </div>
+      <div className="no-print" style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
+        <span className="saved">{savedFlash ? "Saved on this device" : "Your answers save automatically on this device"}</span>
+        <button className="skip" onClick={clearAll}>erase my answers</button>
+      </div>
+
+      {step === 0 && (
+        <div>
+          <p className="sect-label">Before your first session · about 25 minutes total, in your own time</p>
+          <h1 style={{ fontSize: 32, fontWeight: 400, margin: "8px 0 12px", lineHeight: 1.2 }}>Getting to know you</h1>
+          <p style={{ fontSize: 15.5, lineHeight: 1.6, maxWidth: 560, color: "#4C483F" }}>
+            This is not a test. There are no right answers and no scores that mean something is wrong with you.
+            It helps your coach understand how you work and what different situations cost you,
+            so your first session starts from your real life instead of a blank page.
+          </p>
+          <p style={{ fontSize: 15.5, lineHeight: 1.6, maxWidth: 560, color: "#4C483F" }}>
+            Every question can be skipped. Short answers are welcome. Single words are welcome.
+            Your answers stay on this device until you choose to share the final page with your coach.
+          </p>
+          <div className="card" style={{ maxWidth: 560, borderLeft: "4px solid #B0603C" }}>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55 }}>
+              Too much for one sitting? Do one section and close the tab.
+              Your answers will be here when you come back.
+            </p>
+          </div>
+          <div style={{ marginTop: 24 }}>
+            <Q label="What name should your coach call you?" ask="Type your answer.">
+              <textarea rows="1" value={s.name} onChange={e => u({ name: e.target.value })} />
+            </Q>
+            <Q label="Your pronouns, if you'd like to share them" ask="Type your answer."
+               {...sq("pronouns")} onSkip={() => skipQ("pronouns", { pronouns: "" })}>
+              <textarea rows="1" value={s.pronouns} onChange={e => u({ pronouns: e.target.value })} />
+            </Q>
+            <Q label="How do you describe your neurodivergence, in your own words?"
+               sub="Diagnosed, self-identified, still figuring it out, a mix. All of those count."
+               ask={writeAsk} {...sq("identifies")} onSkip={() => skipQ("identifies", { identifies: "" })}>
+              <textarea rows="2" value={s.identifies} onChange={e => u({ identifies: e.target.value })} />
+            </Q>
+          </div>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div>
+          <p className="sect-label">Section 1 of 8 · about 3 minutes</p>
+          <h2 style={{ fontSize: 26, fontWeight: 400, margin: "8px 0 18px" }}>You and your goals</h2>
+          <Q label="What made you decide to try coaching right now?" sub="A moment, a pattern, a decision, a rough season. Whatever is true." ask={writeAsk}
+             {...sq("goal")} onSkip={() => skipQ("goal", { goal: "" })}>
+            <textarea rows="3" value={s.goal} onChange={e => u({ goal: e.target.value })} />
+          </Q>
+          <Q label="Which parts of everyday life feel hardest to keep up with?" ask={writeAsk}
+             {...sq("hardest")} onSkip={() => skipQ("hardest", { hardest: "" })}>
+            <textarea rows="3" value={s.hardest} onChange={e => u({ hardest: e.target.value })} />
+          </Q>
+          <Q label="Imagine coaching goes really well. What's different for you in three months?" ask={writeAsk}
+             {...sq("supportLooksLike")} onSkip={() => skipQ("supportLooksLike", { supportLooksLike: "" })}>
+            <textarea rows="3" value={s.supportLooksLike} onChange={e => u({ supportLooksLike: e.target.value })} />
+          </Q>
+          <Q label="Which places or situations leave you feeling calm and able to focus? Which ones wear you out?" sub="Home, work, school, the bus, online. Name a couple of each." ask={writeAsk}
+             {...sq("environments")} onSkip={() => skipQ("environments", { environments: "" })}>
+            <textarea rows="3" value={s.environments} onChange={e => u({ environments: e.target.value })} />
+          </Q>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div>
+          <p className="sect-label">Section 2 of 8 · about 3 minutes</p>
+          <h2 style={{ fontSize: 26, fontWeight: 400, margin: "8px 0 18px" }}>How you like to talk and be talked to</h2>
+          <Q label="Between sessions, how do you like to be contacted?" ask="Pick as many as apply.">
+            <Chips multi options={COMM_MODES} value={s.commModes} onChange={v => u({ commModes: v })} />
+          </Q>
+          <Q label="Would you like to know the topics before each session?" ask="Pick one.">
+            <Chips options={["yes", "no", "sometimes"]} value={s.topicsAdvance} onChange={v => u({ topicsAdvance: v })} />
+          </Q>
+          <Q label="After a session, would a short written or picture summary help?" ask="Pick one.">
+            <Chips options={["yes", "no", "sometimes"]} value={s.visualSummary} onChange={v => u({ visualSummary: v })} />
+          </Q>
+          <Q label="When you're thinking something over during a session, what helps most?" ask="Pick one.">
+            <Chips options={SESSION_STYLE} value={s.sessionStyle} onChange={v => u({ sessionStyle: v })} />
+          </Q>
+          <Q label="How do you usually show or say that you need a break?"
+             sub="Words, going quiet, looking away, standing up. Your coach will watch for it and respect it without making it a whole conversation."
+             ask={writeAsk} {...sq("breakSignal")} onSkip={() => skipQ("breakSignal", { breakSignal: "" })}>
+            <textarea rows="2" value={s.breakSignal} onChange={e => u({ breakSignal: e.target.value })} />
+          </Q>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div>
+          <p className="sect-label">Section 3 of 8 · about 4 minutes</p>
+          <h2 style={{ fontSize: 26, fontWeight: 400, margin: "8px 0 6px" }}>How your senses respond to the world</h2>
+          <p style={{ fontSize: 14, color: "#6B675C", fontFamily: "system-ui, sans-serif", marginBottom: 20 }}>
+            For each one, pick the answer that fits most of the time. The same thing can bother you one day and help you another. If that's you, use the notes box.
+          </p>
+          {SENSORY_DOMAINS.map(d => (
+            <div key={d.key} className="card">
+              <p style={{ margin: 0, fontSize: 15.5, fontWeight: 700 }}>{d.label} <span style={{ fontWeight: 400, color: "#8A8578", fontSize: 12.5, fontFamily: "system-ui, sans-serif" }}>({d.tech})</span></p>
+              <p style={{ margin: "2px 0 0", fontSize: 12.5, color: "#6B675C", fontFamily: "system-ui, sans-serif" }}>Things like: {d.example}</p>
+              <p className="ask" style={{ margin: "8px 0 0" }}>Pick one.</p>
+              <Chips options={SENSE_OPTIONS} value={s.sensory[d.key].response} onChange={v => uSensory(d.key, { response: v })} />
+              <textarea rows="1" placeholder="Optional notes: when, where, exceptions" style={{ marginTop: 10 }}
+                value={s.sensory[d.key].note} onChange={e => uSensory(d.key, { note: e.target.value })} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {step === 4 && (
+        <div>
+          <p className="sect-label">Section 4 of 8 · about 4 minutes</p>
+          <h2 style={{ fontSize: 26, fontWeight: 400, margin: "8px 0 6px" }}>Getting things done <span style={{ fontSize: 15, color: "#8A8578" }}>(executive function)</span></h2>
+          <p style={{ fontSize: 14, color: "#6B675C", fontFamily: "system-ui, sans-serif", marginBottom: 20 }}>
+            Most people find these easy in some situations and very hard in others. That's normal.
+            Rate how hard each one usually is, then tell us when it goes well for you. That second part is gold for your coach.
+          </p>
+          {EF_DOMAINS.map(d => (
+            <div key={d.key} className="card">
+              <p style={{ margin: 0, fontSize: 15.5, fontWeight: 700 }}>{d.label}</p>
+              <p style={{ margin: "2px 0 0", fontSize: 12.5, color: "#6B675C", fontFamily: "system-ui, sans-serif" }}>{d.desc}</p>
+              <p className="ask" style={{ margin: "10px 0 0" }}>Slide to the number that fits.</p>
+              <CostSlider value={s.ef[d.key].cost} onChange={v => uEF(d.key, { cost: v })}
+                low="takes no effort" mid="manageable but I feel it" high="very hard, drains me fast" />
+              <p className="ask" style={{ margin: "12px 0 0" }}>Optional: finish this sentence.</p>
+              <textarea rows="1" placeholder="This goes well for me when…" style={{ marginTop: 6 }}
+                value={s.ef[d.key].worksWhen} onChange={e => uEF(d.key, { worksWhen: e.target.value })} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {step === 5 && (
+        <div>
+          <p className="sect-label">Section 5 of 8 · about 2 minutes</p>
+          <h2 style={{ fontSize: 26, fontWeight: 400, margin: "8px 0 18px" }}>The performing you do <span style={{ fontSize: 15, color: "#8A8578" }}>(masking)</span></h2>
+          <Q label="How much of your day do you spend acting like a version of yourself that doesn't come naturally?"
+             sub="Hiding fidgets or stims, rehearsing what to say, forcing eye contact, toning yourself down to fit in."
+             ask="Slide to the number that fits.">
+            <CostSlider value={s.maskingCost} onChange={v => u({ maskingCost: v })}
+              low="almost never" mid="parts of most days" high="most of every day" />
+          </Q>
+          <Q label="Where does that performing happen most?" ask={writeAsk}
+             {...sq("maskingWhere")} onSkip={() => skipQ("maskingWhere", { maskingWhere: "" })}>
+            <textarea rows="2" value={s.maskingWhere} onChange={e => u({ maskingWhere: e.target.value })} />
+          </Q>
+          <Q label="What does spending time with people usually do to your energy?"
+             sub="This isn't about whether you like people. It's about what it costs."
+             ask="Slide to the number that fits.">
+            <CostSlider value={s.socialCost} onChange={v => u({ socialCost: v })}
+              low="fills me up" mid="depends on the day" high="drains me fast" />
+          </Q>
+        </div>
+      )}
+
+      {step === 6 && (
+        <div>
+          <p className="sect-label">Section 6 of 8 · about 3 minutes</p>
+          <h2 style={{ fontSize: 26, fontWeight: 400, margin: "8px 0 18px" }}>Rest and recovery</h2>
+          <Q label="What's your favorite way to rest or recharge?" ask={writeAsk}
+             {...sq("recharge")} onSkip={() => skipQ("recharge", { recharge: "" })}>
+            <textarea rows="2" value={s.recharge} onChange={e => u({ recharge: e.target.value })} />
+          </Q>
+          <Q label="When you're stuck and can't start something, what actually helps?"
+             sub="A timer, music, someone nearby, movement, deadline panic. Whatever honestly works, even if it sounds odd."
+             ask={writeAsk} {...sq("regulationHelps")} onSkip={() => skipQ("regulationHelps", { regulationHelps: "" })}>
+            <textarea rows="2" value={s.regulationHelps} onChange={e => u({ regulationHelps: e.target.value })} />
+          </Q>
+          <Q label="What are your early signs that you're heading toward overwhelm or burnout?"
+             sub="Sounds getting louder, easy things getting hard, wanting to hide, sleep not helping anymore. Naming these lets you and your coach catch them early together."
+             ask={writeAsk} {...sq("warningSigns")} onSkip={() => skipQ("warningSigns", { warningSigns: "" })}>
+            <textarea rows="3" value={s.warningSigns} onChange={e => u({ warningSigns: e.target.value })} />
+          </Q>
+        </div>
+      )}
+
+      {step === 7 && (
+        <div>
+          <p className="sect-label">Section 7 of 8 · about 2 minutes</p>
+          <h2 style={{ fontSize: 26, fontWeight: 400, margin: "8px 0 6px" }}>Booking sessions your way</h2>
+          <p style={{ fontSize: 14, color: "#6B675C", fontFamily: "system-ui, sans-serif", marginBottom: 20 }}>
+            Some people need the same slot every week. Some need to book when they're ready. Both are fine here. Your coach will set booking up to match what you pick.
+          </p>
+          <Q label="How do you like to book sessions?" ask="Pick one.">
+            <Chips options={BOOKING} value={s.booking} onChange={v => u({ booking: v })} />
+          </Q>
+          <Q label="When in the day is your brain usually at its best?" ask="Pick one.">
+            <Chips options={BEST_TIME} value={s.bestTime} onChange={v => u({ bestTime: v })} />
+          </Q>
+          <Q label="On a low-energy day, what would you rather do instead of cancelling?"
+             sub="Reschedule means exactly that. No reason needed, just pick a new time."
+             ask="Pick one.">
+            <Chips options={LOW_ENERGY} value={s.lowEnergy} onChange={v => u({ lowEnergy: v, rescheduleStyle: v === "Reschedule it" ? s.rescheduleStyle : null })} />
+          </Q>
+          {s.lowEnergy === "Reschedule it" && (
+            <Q label="When you reschedule, would you rather…" ask="Pick one.">
+              <Chips options={RESCHED_STYLE} value={s.rescheduleStyle} onChange={v => u({ rescheduleStyle: v })} />
+            </Q>
+          )}
+          <Q label="Want reminders before each session?" ask="Pick one.">
+            <Chips options={REMINDERS} value={s.reminders} onChange={v => u({ reminders: v })} />
+          </Q>
+          <Q label="If you go quiet for a while, want a friendly nudge from your coach?"
+             sub="A nudge is one short message with no pressure and no need to reply."
+             ask="Pick one.">
+            <Chips options={NUDGE} value={s.nudge} onChange={v => u({ nudge: v })} />
+          </Q>
+        </div>
+      )}
+
+      {step === 8 && (
+        <div>
+          <p className="sect-label">Section 8 of 8 · about 3 minutes</p>
+          <h2 style={{ fontSize: 26, fontWeight: 400, margin: "8px 0 6px" }}>What you're good at</h2>
+          <p style={{ fontSize: 14, color: "#6B675C", fontFamily: "system-ui, sans-serif", marginBottom: 20 }}>
+            These count even if nobody ever gave you a grade or a paycheck for them.
+            If this section feels hard to fill in, that's common, skip it and your coach will help you find them together.
+          </p>
+          {STRENGTH_CATS.map(c => (
+            <Q key={c.key} label={c.key} sub={"Things like: " + c.hint} ask={writeAsk}
+               {...sq("str-" + c.key)} onSkip={() => skipStrength(c.key)}>
+              <textarea rows="2" value={s.strengths[c.key]} onChange={e => uStrength(c.key, e.target.value)} />
+            </Q>
+          ))}
+          <Q label="What interests or activities reliably bring you joy or calm?"
+             sub="And when do you actually get to do them?"
+             ask={writeAsk} {...sq("joyAnchors")} onSkip={() => skipQ("joyAnchors", { joyAnchors: "" })}>
+            <textarea rows="3" value={s.joyAnchors} onChange={e => u({ joyAnchors: e.target.value })} />
+          </Q>
+        </div>
+      )}
+
+      {step === 9 && (
+        <div>
+          <p className="sect-label">Your profile · share this page with your coach</p>
+          <h1 style={{ fontSize: 30, fontWeight: 400, margin: "8px 0 4px" }}>{s.name ? `${s.name}'s` : "Your"} Difference Profile</h1>
+          {s.pronouns && <p style={{ margin: "0 0 4px", fontSize: 14, color: "#6B675C", fontFamily: "system-ui, sans-serif" }}>{s.pronouns}</p>}
+          {s.identifies && <p style={{ fontSize: 15, color: "#4C483F", maxWidth: 600 }}>{s.identifies}</p>}
+
+          <div className="card">
+            <p style={{ margin: "0 0 4px", fontSize: 13, fontFamily: "system-ui, sans-serif", letterSpacing: "0.14em", textTransform: "uppercase", color: "#6B675C", fontWeight: 700 }}>Your wheel</p>
+            <p style={{ margin: "0 0 10px", fontSize: 14, lineHeight: 1.5, maxWidth: 600 }}>
+              How to read this: each spoke is one area of life. The farther the dot sits from the center,
+              the more that area costs you right now. Closer to the center means it takes less out of you.
+              The numbers come from your answers.
+            </p>
+            <div style={{ textAlign: "center" }}>
+              <Wheel values={profile.wheelValues} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginTop: 4 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#2F5D50", display: "inline-block" }}></span>
+              <span style={{ fontSize: 12, fontFamily: "system-ui, sans-serif", color: "#6B675C" }}>Your answers, scored 0 (costs little) to 10 (costs a lot)</span>
+            </div>
+            <div style={{ marginTop: 14, borderTop: "1px solid #E5E2D8", paddingTop: 12 }}>
+              {WHEEL.map(d => (
+                <p key={d.key} style={{ margin: "0 0 6px", fontSize: 13, fontFamily: "system-ui, sans-serif", color: "#4C483F" }}>
+                  <strong>{d.label.join(" ")}</strong> · {d.desc}
+                </p>
+              ))}
+            </div>
+            <p style={{ fontSize: 12, color: "#8A8578", fontFamily: "system-ui, sans-serif", margin: "10px 0 0" }}>
+              This is a map of what things cost you in your current environment, not a measure of severity or ability. It will look different after major life changes, and that's the point. Re-map every few months.
+            </p>
+          </div>
+
+          <div className="card" style={{ borderLeft: "4px solid #2F5D50" }}>
+            <p style={{ margin: "0 0 10px", fontSize: 13, fontFamily: "system-ui, sans-serif", letterSpacing: "0.14em", textTransform: "uppercase", color: "#2F5D50", fontWeight: 700 }}>How sessions will work for you</p>
+            <p style={{ margin: "0 0 12px", fontSize: 13, fontFamily: "system-ui, sans-serif", color: "#6B675C" }}>Built from your answers. Bring this to session one and change anything that doesn't fit.</p>
+            {profile.adaptations.map((x, i) => (
+              <p key={i} style={{ margin: "0 0 10px", fontSize: 14.5, lineHeight: 1.5 }}>{x}</p>
+            ))}
+          </div>
+
+          {(s.goal || s.hardest || s.supportLooksLike || s.environments) && (
+            <div className="card">
+              <p style={{ margin: "0 0 10px", fontSize: 13, fontFamily: "system-ui, sans-serif", letterSpacing: "0.14em", textTransform: "uppercase", color: "#6B675C", fontWeight: 700 }}>Context & goals</p>
+              {s.goal && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Why now:</strong> {s.goal}</p>}
+              {s.hardest && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Hardest to manage:</strong> {s.hardest}</p>}
+              {s.supportLooksLike && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Three-month picture:</strong> {s.supportLooksLike}</p>}
+              {s.environments && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Environments:</strong> {s.environments}</p>}
+            </div>
+          )}
+
+          <div className="card">
+            <p style={{ margin: "0 0 10px", fontSize: 13, fontFamily: "system-ui, sans-serif", letterSpacing: "0.14em", textTransform: "uppercase", color: "#6B675C", fontWeight: 700 }}>Sensory notes</p>
+            {SENSORY_DOMAINS.map(d => {
+              const r = s.sensory[d.key];
+              if (!r.response && !r.note) return null;
+              return <p key={d.key} style={{ fontSize: 14.5, lineHeight: 1.5 }}>
+                <strong>{d.label} ({d.tech}):</strong> {r.response || "not rated"}{r.note ? `. ${r.note}` : ""}
+              </p>;
+            })}
+          </div>
+
+          <div className="card">
+            <p style={{ margin: "0 0 10px", fontSize: 13, fontFamily: "system-ui, sans-serif", letterSpacing: "0.14em", textTransform: "uppercase", color: "#6B675C", fontWeight: 700 }}>Getting things done: conditions of success</p>
+            {EF_DOMAINS.map(d => {
+              const r = s.ef[d.key];
+              if (r.cost == null && !r.worksWhen) return null;
+              return <p key={d.key} style={{ fontSize: 14.5, lineHeight: 1.5 }}>
+                <strong>{d.label}</strong> (cost {r.cost ?? "–"}/10){r.worksWhen ? `: goes well when ${r.worksWhen}` : ""}
+              </p>;
+            })}
+            {s.regulationHelps && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Task-start allies:</strong> {s.regulationHelps}</p>}
+          </div>
+
+          {(s.booking || s.bestTime || s.lowEnergy || s.reminders || s.nudge) && (
+            <div className="card">
+              <p style={{ margin: "0 0 10px", fontSize: 13, fontFamily: "system-ui, sans-serif", letterSpacing: "0.14em", textTransform: "uppercase", color: "#6B675C", fontWeight: 700 }}>Scheduling preferences</p>
+              {s.booking && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Booking style:</strong> {s.booking}</p>}
+              {s.bestTime && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Best time of day:</strong> {s.bestTime}</p>}
+              {s.lowEnergy && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Low-energy fallback:</strong> {s.lowEnergy}</p>}
+              {s.rescheduleStyle && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Reschedule style:</strong> {s.rescheduleStyle}</p>}
+              {s.reminders && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Reminders:</strong> {s.reminders}</p>}
+              {s.nudge && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Re-engagement nudge:</strong> {s.nudge}</p>}
+            </div>
+          )}
+
+          {(Object.values(s.strengths).some(v => v) || s.joyAnchors || s.recharge) && (
+            <div className="card" style={{ borderLeft: "4px solid #B0603C" }}>
+              <p style={{ margin: "0 0 10px", fontSize: 13, fontFamily: "system-ui, sans-serif", letterSpacing: "0.14em", textTransform: "uppercase", color: "#B0603C", fontWeight: 700 }}>Strengths & joy anchors</p>
+              {STRENGTH_CATS.map(c => s.strengths[c.key] && (
+                <p key={c.key} style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>{c.key}:</strong> {s.strengths[c.key]}</p>
+              ))}
+              {s.joyAnchors && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Joy anchors:</strong> {s.joyAnchors}</p>}
+              {s.recharge && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Recharge:</strong> {s.recharge}</p>}
+              {!Object.values(s.strengths).some(v => v) && <p style={{ fontSize: 14.5, lineHeight: 1.5, fontStyle: "italic" }}>The strengths section was left mostly blank. That's common and it isn't a verdict. Finding them together is part of the work.</p>}
+            </div>
+          )}
+
+          {(s.maskingWhere || s.warningSigns) && (
+            <div className="card">
+              <p style={{ margin: "0 0 10px", fontSize: 13, fontFamily: "system-ui, sans-serif", letterSpacing: "0.14em", textTransform: "uppercase", color: "#6B675C", fontWeight: 700 }}>Load & early warning</p>
+              {s.maskingWhere && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Masking happens most:</strong> {s.maskingWhere}</p>}
+              {s.warningSigns && <p style={{ fontSize: 14.5, lineHeight: 1.5 }}><strong>Early burnout markers:</strong> {s.warningSigns}</p>}
+            </div>
+          )}
+
+          <p style={{ fontSize: 12, fontFamily: "system-ui, sans-serif", color: "#8A8578", maxWidth: 560, lineHeight: 1.5 }}>
+            Self-reported coaching intake, not a clinical assessment or diagnostic instrument.
+            Profile reflects the client's own account at one point in time. Re-audit every 3 to 6 months.
+          </p>
+
+          <div className="no-print" style={{ display: "flex", gap: 12, marginTop: 20 }}>
+            <button className="btn" onClick={() => window.print()}>Print / save as PDF</button>
+            <button className="btn ghost" onClick={() => setStep(0)}>Back to start</button>
+          </div>
+        </div>
+      )}
+
+      {step < last && (
+        <div className="no-print" style={{ display: "flex", justifyContent: "space-between", marginTop: 32 }}>
+          <button className="btn ghost" disabled={step === 0} style={{ visibility: step === 0 ? "hidden" : "visible" }}
+            onClick={() => setStep(step - 1)}>Back</button>
+          <button className="btn" onClick={() => setStep(step + 1)}>
+            {step === last - 1 ? "See your profile" : "Continue"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
