@@ -1,58 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Difference Map</title>
+<meta charset="UTF-8" />
+<title>Start Here</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
+  :root {
+    --cream: #F1EFE8; --ink: #26241F; --pine: #2F5D50; --clay: #B0603C;
+    --muted: #6B675C; --faint: #8A8578; --line: #CBC7BA; --card: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #0b0b0c;
-    color: #f2f2f2;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    margin: 0;
-    padding: 2rem;
+    margin: 0; background: var(--cream); color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif; -webkit-font-smoothing: antialiased;
   }
-  h1 {
-    font-size: 1.5rem;
-    margin-bottom: 2rem;
-    font-weight: 600;
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 56px 22px 80px; }
+  .eyebrow {
+    font-family: system-ui, -apple-system, sans-serif; font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
   }
-  nav {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    width: 100%;
-    max-width: 360px;
+  h1 { font-size: 32px; font-weight: normal; line-height: 1.25; margin: 14px 0 10px; }
+  .lede { font-size: 17px; line-height: 1.6; color: var(--ink); margin: 0 0 40px; max-width: 52ch; }
+
+  .gap {
+    width: 100%; max-width: 220px; height: 46px; margin: 6px 0 36px; display: block;
   }
-  a {
-    display: block;
-    text-align: center;
-    padding: 0.9rem 1.2rem;
-    background: #18181b;
-    border: 1px solid #2a2a2e;
-    border-radius: 10px;
-    color: #f2f2f2;
-    text-decoration: none;
-    font-size: 1rem;
-    transition: background 0.15s ease, border-color 0.15s ease;
+
+  .card {
+    display: block; background: var(--card); border-radius: 8px;
+    padding: 24px 26px; margin: 0 0 16px; border: 1px solid var(--line);
+    transition: border-color 0.15s ease, transform 0.15s ease;
   }
-  a:hover {
-    background: #232327;
-    border-color: #3a3a3e;
+  .card:hover { border-color: var(--pine); }
+  .card:focus-visible { outline: 2px solid var(--pine); outline-offset: 3px; }
+  .card-top { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+  .icon { flex: none; width: 34px; height: 34px; }
+  .card h2 { font-size: 21px; font-weight: normal; margin: 0; color: var(--ink); }
+  .start-if {
+    font-family: system-ui, -apple-system, sans-serif; font-size: 12.5px;
+    letter-spacing: 0.04em; color: var(--pine); margin: 0 0 8px; font-weight: 600;
+  }
+  .card p.desc { font-size: 15.5px; line-height: 1.55; color: var(--muted); margin: 0; }
+  .arrow {
+    font-family: system-ui, -apple-system, sans-serif; font-size: 13px; color: var(--clay);
+    margin-top: 12px; display: inline-block;
+  }
+
+  .foot {
+    border-top: 1px solid var(--line); margin-top: 40px; padding-top: 16px;
+  }
+  .tiny {
+    font-family: system-ui, -apple-system, sans-serif; font-size: 12px;
+    line-height: 1.6; color: var(--faint);
+  }
+
+  @media (max-width: 420px) {
+    h1 { font-size: 27px; }
+    .card { padding: 20px; }
   }
 </style>
 </head>
 <body>
-  <h1>Difference Map</h1>
-  <nav>
-    <a href="/difference-map" target="_blank" rel="noopener noreferrer">Difference Map</a>
-    <a href="/burnout-mode" target="_blank" rel="noopener noreferrer">Burnout Mode</a>
-    <a href="/intake-profiler-v4" target="_blank" rel="noopener noreferrer">Intake Profiler v4</a>
-  </nav>
+<div class="wrap">
+  <div class="eyebrow">As Made</div>
+  <h1>Tools for understanding how you're wired.</h1>
+  <p class="lede">Neurodivergence means your brain processes the world differently from what's considered typical. Autism, ADHD, dyslexia, dyspraxia, and more, all fall under it. It's a variation, not a flaw. These tools are built for neurodivergent people, and they come back to one idea: a lot of what feels like failure is actually a gap between what your day demands and what you actually have to give.</p>
+  <p class="lede" style="margin-bottom: 32px;">Three ways in, depending on where you are right now.</p>
+
+  <svg class="gap" viewBox="0 0 220 46" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <polyline points="0,10 55,26 110,14 165,32 220,18" fill="none" stroke="#B0603C" stroke-width="2" opacity="0.65"/>
+    <polyline points="0,34 55,30 110,36 165,26 220,34" fill="none" stroke="#2F5D50" stroke-width="2.5"/>
+  </svg>
+
+  <a class="card" href="/difference-map">
+    <div class="card-top">
+      <svg class="icon" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="17" cy="17" r="15" fill="none" stroke="#CBC7BA" stroke-width="1.5"/>
+        <polygon points="17,7 25,14 22,24 12,24 9,14" fill="#2F5D50" fill-opacity="0.18" stroke="#2F5D50" stroke-width="1.5"/>
+      </svg>
+      <h2>The Difference Map</h2>
+    </div>
+    <p class="start-if">Start here if: you want to understand your neurodivergence, and where your energy goes.</p>
+    <p class="desc">Eight areas of your life, mapped against what you can actually handle. Where the squeeze is, and what to do about each one.</p>
+    <span class="arrow">Open the map &#8594;</span>
+  </a>
+
+  <a class="card" href="/burnout-mode">
+    <div class="card-top">
+      <svg class="icon" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="6" y="9" width="20" height="16" rx="2" fill="none" stroke="#2F5D50" stroke-width="1.5"/>
+        <rect x="26" y="14" width="3" height="6" rx="1" fill="#2F5D50"/>
+        <rect x="9" y="12" width="6" height="10" fill="#B0603C" fill-opacity="0.55"/>
+      </svg>
+      <h2>Burnout Mode</h2>
+    </div>
+    <p class="start-if">Start here if: you're running on empty right now.</p>
+    <p class="desc">Five minutes, no typing. Tap what's true, and get a plan for lightening your load today, not eventually.</p>
+    <span class="arrow">Start the check-in &#8594;</span>
+  </a>
+
+  <a class="card" href="/intake-profiler">
+    <div class="card-top">
+      <svg class="icon" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="17" cy="12" r="5" fill="none" stroke="#2F5D50" stroke-width="1.5"/>
+        <path d="M7,27 Q17,17 27,27" fill="none" stroke="#2F5D50" stroke-width="1.5"/>
+      </svg>
+      <h2>Getting to Know You</h2>
+    </div>
+    <p class="start-if">Start here if: your coach sent you this before a session.</p>
+    <p class="desc">A one-time profile that helps your coach understand how you work, before you even sit down together.</p>
+    <span class="arrow">Fill it out &#8594;</span>
+  </a>
+
+  <div class="foot">
+    <p class="tiny">Nothing you enter on any of these leaves your device unless a tool says otherwise. None of this replaces medical or mental health care.</p>
+  </div>
+</div>
 </body>
 </html>
